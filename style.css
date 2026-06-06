@@ -1,0 +1,641 @@
+/* ============================================================
+   style.css — Family Hub · Design System & Global Styles
+   ============================================================
+   This file is the SINGLE SOURCE OF TRUTH for all visual
+   design in the app. Every color, font, spacing value, and
+   layout rule is defined here.
+
+   HOW CSS CUSTOM PROPERTIES (VARIABLES) WORK:
+   We define all colors/values once at the top inside :root {}
+   using the syntax --variable-name: value;
+   Then anywhere in this file we use them with var(--variable-name)
+   Change it once at the top and it updates everywhere instantly.
+
+   FILE STRUCTURE:
+     1. CSS Custom Properties (Design Tokens)
+     2. CSS Reset & Base Styles
+     3. iPhone Safe Area & App Shell
+     4. App Header
+     5. Branch Divider
+     6. Main Content & Greeting
+     7. Widget Cards
+     8. Bottom Navigation Bar
+     9. Utility Classes & Animations
+   ============================================================ */
+
+
+/* ────────────────────────────────────────────────────────────
+   SECTION 1: CSS CUSTOM PROPERTIES (Design Tokens)
+
+   :root refers to the <html> element. Variables defined here
+   are available everywhere in the stylesheet.
+   Think of this as our brand guide written in code.
+   ──────────────────────────────────────────────────────────── */
+:root {
+
+  /* ── COLOR PALETTE ──────────────────────────────────────
+     Our Japanese cherry blossom color palette.
+     Each color has a name from Japanese nature/culture.
+  ────────────────────────────────────────────────────────── */
+
+  /* Cream — the main background, warm off-white */
+  --color-cream:        #fdf6ee;
+  --color-cream-dark:   #f5ebe0;  /* slightly darker for cards */
+
+  /* Sakura — cherry blossom pink, our primary accent */
+  --color-sakura-100:   #fce4ef;  /* very light — hover states */
+  --color-sakura-400:   #f9a8c9;  /* medium — buttons, active nav */
+  --color-sakura-700:   #d4537e;  /* deep — text on light pink bg */
+  --color-sakura-900:   #7c1d3e;  /* dark rose — headings on pink */
+
+  /* Yuzu — warm citrus orange, secondary accent */
+  --color-yuzu-400:     #fbbf77;  /* medium orange — progress bars */
+  --color-yuzu-700:     #c97a4a;  /* dark orange — labels */
+
+  /* Matcha — soft green for success/done states */
+  --color-matcha-300:   #86efac;  /* light green — completed items */
+  --color-matcha-600:   #34d399;  /* medium green — budget bar */
+
+  /* Sky — light blue for informational elements */
+  --color-sky-300:      #7dd3fc;
+  --color-sky-700:      #0369a1;
+
+  /* Wisteria — soft purple */
+  --color-wisteria-300: #c084fc;
+  --color-wisteria-700: #7e22ce;
+
+  /* Teal — accent variety */
+  --color-teal-300:     #5eead4;
+  --color-teal-700:     #0f766e;
+
+  /* Bark — warm dark browns for text */
+  --color-bark-900:     #3d2314;  /* darkest — main headings */
+  --color-bark-700:     #5a3e2b;  /* dark — body text */
+  --color-bark-500:     #8b5e3c;  /* medium — labels, subtitles */
+  --color-bark-300:     #c8a98a;  /* light — borders */
+  --color-bark-100:     #e8d5b7;  /* very light — card borders */
+
+  /* ── SEMANTIC COLOR ASSIGNMENTS ────────────────────────
+     These map our named colors to their PURPOSE in the UI.
+     Always use semantic names in components, not raw values.
+     This way changing the brand color updates everything.
+  ────────────────────────────────────────────────────────── */
+  --color-bg-page:       var(--color-cream);
+  --color-bg-card:       rgba(255, 255, 255, 0.82);
+  --color-bg-nav:        rgba(253, 248, 240, 0.94);
+  --color-bg-active:     var(--color-sakura-400);
+
+  --color-text-primary:  var(--color-bark-900);
+  --color-text-body:     var(--color-bark-700);
+  --color-text-label:    var(--color-bark-500);
+  --color-text-accent:   var(--color-yuzu-700);
+  --color-text-kana:     var(--color-sakura-700);
+  --color-text-nav:      var(--color-bark-500);
+  --color-text-nav-active: var(--color-sakura-900);
+
+  --color-border-card:   rgba(200, 169, 138, 0.35);
+  --color-border-nav:    rgba(200, 169, 138, 0.40);
+
+  --color-success:       var(--color-matcha-300);
+  --color-pending:       var(--color-yuzu-400);
+
+  /* ── TYPOGRAPHY ─────────────────────────────────────────
+     font-heading: Kaisei Decol — brush-like Japanese serif
+       used for titles. Falls back to Georgia if not loaded.
+
+     font-body: Noto Sans JP — clean modern sans-serif that
+       handles both English and Japanese characters perfectly.
+       Falls back to the OS default font (system-ui).
+  ────────────────────────────────────────────────────────── */
+  --font-heading: 'Kaisei Decol', Georgia, serif;
+  --font-body:    'Noto Sans JP', system-ui, -apple-system, sans-serif;
+
+  /* Font sizes — a consistent scale used throughout */
+  --text-xs:   9px;    /* tiny labels, kana widget labels */
+  --text-sm:   11px;   /* small labels, secondary text */
+  --text-base: 14px;   /* default body text */
+  --text-lg:   18px;   /* larger body, card content */
+  --text-xl:   22px;   /* app title */
+  --text-kana: 18px;   /* decorative kana accent */
+
+  /* ── SPACING ────────────────────────────────────────────
+     A consistent scale so padding/margin values feel
+     harmonious throughout the app.
+  ────────────────────────────────────────────────────────── */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  14px;
+  --space-lg:  20px;
+  --space-xl:  28px;
+
+  /* ── BORDER RADIUS ──────────────────────────────────────
+     Rounded corners used throughout the app.
+  ────────────────────────────────────────────────────────── */
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+
+  /* ── LAYOUT ─────────────────────────────────────────────
+     Fixed heights for consistent structure across pages.
+  ────────────────────────────────────────────────────────── */
+  --header-height: 80px;
+  --branch-height: 52px;
+  --nav-height:    68px;
+}
+
+
+/* ────────────────────────────────────────────────────────────
+   SECTION 2: CSS RESET & BASE STYLES
+
+   Browsers have built-in default styles that vary across
+   Safari, Chrome, Firefox etc. This reset zeroes those out
+   so our app looks the same everywhere.
+   ──────────────────────────────────────────────────────────── */
+
+/* box-sizing: border-box means padding and border are INCLUDED
+   in an element's stated width/height. Without this, adding
+   padding to a 100px element makes it wider than 100px.
+   The * applies this to every single element on the page. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;   /* remove default browser margins */
+  padding: 0;  /* remove default browser padding */
+}
+
+html {
+  overflow-x: hidden; /* prevent horizontal scrolling */
+  height: 100%;       /* fill full viewport height */
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg-page);
+  color: var(--color-text-body);
+
+  /* Prevent iOS from auto-adjusting font sizes on rotation */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+
+  /* Sharper font rendering on retina screens */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  height: 100%;
+  overflow: hidden; /* body doesn't scroll — sections scroll independently */
+}
+
+/* Remove default link underlines and color */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Remove default list bullet points */
+ul, ol {
+  list-style: none;
+}
+
+/* Make images responsive */
+img {
+  max-width: 100%;
+  display: block;
+}
+
+
+/* ────────────────────────────────────────────────────────────
+   SECTION 3: IPHONE SAFE AREA & APP SHELL
+
+   The app shell is the outermost container that:
+     - Caps max width at 430px (widest iPhone) and centers it
+     - Sets up the flex column: header → content → nav
+   ──────────────────────────────────────────────────────────── */
+
+.app-wrapper {
+  width: 100%;
+  height: 100%;
+  max-width: 430px;   /* cap at iPhone max width */
+  margin: 0 auto;     /* center on wider screens like iPad */
+
+  display: flex;
+  flex-direction: column; /* stack children vertically */
+
+  position: relative;
+  background-color: var(--color-bg-page);
+
+  /* Subtle repeating dot pattern — creates a very faint
+     texture in the background without needing an image file.
+     radial-gradient draws a tiny circle, background-size
+     tiles it every 40px across the whole background. */
+  background-image:
+    radial-gradient(circle at 20px 20px, rgba(200, 169, 138, 0.06) 2px, transparent 2px);
+  background-size: 40px 40px;
+}
+
+/* ── SAFE AREA SPACERS ──────────────────────────────────────
+   env(safe-area-inset-top/bottom) are CSS variables provided
+   by iOS Safari. They return the pixel height of the zones
+   occupied by the notch/Dynamic Island (top) and the home
+   indicator swipe bar (bottom). Setting our spacers to these
+   heights keeps content out of those hardware UI zones.
+────────────────────────────────────────────────────────────── */
+.safe-area-top {
+  /* Pushes content below iPhone notch/Dynamic Island.
+     0px fallback for older devices without a notch. */
+  height: env(safe-area-inset-top, 0px);
+  flex-shrink: 0;
+}
+
+.safe-area-bottom {
+  /* Reserves space above the home indicator swipe bar. */
+  height: env(safe-area-inset-bottom, 0px);
+  flex-shrink: 0;
+}
+
+
+/* ────────────────────────────────────────────────────────────
+   SECTION 4: APP HEADER
+   ──────────────────────────────────────────────────────────── */
+
+.app-header {
+  height: var(--header-height); /* 80px fixed */
+  flex-shrink: 0;               /* don't shrink in flex layout */
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between; /* title left, kana right */
+  align-items: flex-end;          /* align to bottom of header */
+
+  padding: var(--space-sm) var(--space-lg) var(--space-md);
+}
+
+.app-title {
+  /* Kaisei Decol serif — the Japanese heading font */
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);  /* 22px */
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1;
+
+  /* Very subtle shadow — like ink pressing into paper */
+  text-shadow: 0 1px 2px rgba(139, 94, 60, 0.15);
+}
+
+.app-subtitle {
+  /* Small orange label beneath the Japanese title */
+  font-size: var(--text-xs);   /* 9px */
+  font-weight: 700;
+  color: var(--color-text-accent);
+  letter-spacing: 0.18em;      /* wide tracking for badge feel */
+  margin-top: var(--space-xs);
+}
+
+.kana-accent {
+  /* Decorative Japanese kana in the top-right corner.
+     さくら = sakura. Purely visual — not interactive. */
+  font-family: var(--font-body);
+  font-size: var(--text-kana); /* 18px */
+  font-weight: 300;            /* light weight, elegant */
+  color: var(--color-text-kana);
+  opacity: 0.7;
+  padding-bottom: 2px;
+}
+
+
+/* ────────────────────────────────────────────────────────────
+   SECTION 5: BRANCH DIVIDER
+   ──────────────────────────────────────────────────────────── */
+
+.branch-divider {
+  height: var(--branch-height); /* 52px — matches SVG height */
+  flex-shrink: 0;
+  width: 100%;
+  margin-top: -4px; /* slight overlap with header for natural feel */
+}
+
+
+/* ────────────────────────────────────────────────────────────
+   SECTION 6: MAIN CONTENT AREA & GREETING
+   ──────────────────────────────────────────────────────────── */
+
+.main-content {
+  /* flex: 1 fills ALL remaining space between header and nav.
+     It grows to take whatever vertical space is left over. */
+  flex: 1;
+
+  overflow-y: auto;                    /* scroll if content overflows */
+  -webkit-overflow-scrolling: touch;   /* smooth momentum scroll on iPhone */
+
+  padding: var(--space-md) var(--space-md) var(--space-xl);
+}
+
+/* ── GREETING BANNER ──────────────────────────────────────── */
+.greeting-banner {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-sm) 0;
+}
+
+.greeting-text {
+  /* Time-of-day greeting set dynamically by app.js */
+  font-family: var(--font-heading); /* Kaisei Decol serif */
+  font-size: var(--text-lg);        /* 18px */
+  font-weight: 400;
+  color: var(--color-text-primary);
+}
+
+.greeting-date {
+  /* Date displayed below the greeting */
+  font-size: var(--text-sm);  /* 11px */
+  color: var(--color-text-label);
+  margin-top: var(--space-xs);
+  letter-spacing: 0.04em;
+}
+
+
+/* ────────────────────────────────────────────────────────────
+   SECTION 7: WIDGET CARDS
+   ──────────────────────────────────────────────────────────── */
+
+.widgets-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md); /* 14px gap between each card */
+}
+
+.widget-card {
+  /* The floating glass card container */
+  display: block;                       /* <a> tag needs block to fill width */
+  background: var(--color-bg-card);     /* semi-transparent white */
+  border-radius: var(--radius-lg);      /* 16px rounded corners */
+  border: 1px solid var(--color-border-card);
+  padding: var(--space-md);
+
+  /* Smooth transition for tap feedback */
+  transition: transform 0.15s ease, background 0.15s ease;
+  cursor: pointer;
+
+  /* Remove the blue tap flash on iPhone */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Visual feedback when card is tapped */
+.widget-card:active {
+  transform: scale(0.98);              /* slightly shrinks — feels like pressing */
+  background: var(--color-cream-dark); /* slightly darker on press */
+}
+
+.widget-header {
+  /* Row: title on left, kana label on right */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.widget-title {
+  /* Section name in small caps style */
+  font-size: var(--text-xs);  /* 9px */
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-label);
+}
+
+.widget-kana {
+  /* Japanese label on right side of widget header */
+  font-size: var(--text-sm);  /* 11px */
+  font-weight: 300;
+  color: var(--color-text-accent);
+  opacity: 0.65;
+}
+
+.widget-body {
+  /* Where app.js injects live data */
+  min-height: 40px; /* keeps cards from collapsing while loading */
+}
+
+.widget-loading {
+  /* Placeholder text while Supabase data is fetching */
+  font-size: var(--text-sm);
+  color: var(--color-text-label);
+  font-style: italic;
+  opacity: 0.6;
+}
+
+/* ── CALENDAR WIDGET STYLES ─────────────────────────────────
+   Styles for event items injected by app.js
+────────────────────────────────────────────────────────────── */
+.calendar-event {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-body);
+  padding: var(--space-xs) 0;
+}
+
+.calendar-event-dot {
+  /* Small colored dot before each event name */
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;              /* perfect circle */
+  background: var(--color-sakura-400);
+  flex-shrink: 0;                  /* never let the dot squish */
+}
+
+.calendar-empty {
+  font-size: var(--text-sm);
+  color: var(--color-text-label);
+  font-style: italic;
+}
+
+/* ── SHOPPING WIDGET STYLES ─────────────────────────────────
+   Styles for shopping summary injected by app.js
+────────────────────────────────────────────────────────────── */
+.shopping-summary {
+  font-size: var(--text-base);
+  color: var(--color-text-body);
+}
+
+.shopping-count {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* ── BUDGET WIDGET STYLES ───────────────────────────────────
+   Styles for the budget progress bar injected by app.js
+────────────────────────────────────────────────────────────── */
+.budget-bar-wrap {
+  /* The grey track behind the colored progress fill */
+  background: var(--color-cream-dark);
+  border-radius: var(--space-sm);
+  height: 8px;
+  overflow: hidden; /* clips the fill at the rounded edges */
+  margin: var(--space-xs) 0;
+}
+
+.budget-bar-fill {
+  /* The colored fill bar. Width set by app.js e.g. style="width:62%" */
+  height: 100%;
+  border-radius: var(--space-sm);
+  background: linear-gradient(90deg, var(--color-matcha-300), var(--color-matcha-600));
+
+  /* Animates the bar filling in when the page loads */
+  transition: width 0.8s ease;
+}
+
+.budget-bar-fill.over-budget {
+  /* Turns red/orange when spending exceeds the budget */
+  background: linear-gradient(90deg, var(--color-yuzu-400), #ef4444);
+}
+
+.budget-labels {
+  /* Dollar amounts shown below the progress bar */
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  color: var(--color-text-label);
+  margin-top: var(--space-xs);
+}
+
+
+/* ────────────────────────────────────────────────────────────
+   SECTION 8: BOTTOM NAVIGATION BAR
+   ──────────────────────────────────────────────────────────── */
+
+.bottom-nav {
+  height: var(--nav-height); /* 68px fixed */
+  flex-shrink: 0;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around; /* even spacing between 5 items */
+  align-items: center;
+
+  background: var(--color-bg-nav);
+  border-top: 1px solid var(--color-border-nav);
+
+  /* Frosted glass effect — blurs content behind the nav bar */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); /* required prefix for Safari/iPhone */
+
+  /* max() ensures at least 8px padding, or the safe area
+     height — whichever is larger. Keeps nav above home indicator. */
+  padding-bottom: max(env(safe-area-inset-bottom), 8px);
+}
+
+.nav-item {
+  /* Each nav item — icon stacked above label */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);     /* 4px between icon and label */
+
+  /* Apple recommends minimum 44x44px tap targets for fingers */
+  padding: var(--space-xs) var(--space-sm);
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+
+  border-radius: var(--radius-md);
+  transition: background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+.nav-item.active {
+  /* Active page gets a Sakura pink background pill */
+  background: var(--color-bg-active);
+}
+
+.nav-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.nav-label {
+  /* Tiny label below the icon */
+  font-size: var(--text-xs);  /* 9px — small to fit 5 items */
+  font-weight: 500;
+  color: var(--color-text-nav);
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.nav-item.active .nav-label {
+  color: var(--color-text-nav-active); /* darker on active item */
+  font-weight: 700;
+}
+
+
+/* ────────────────────────────────────────────────────────────
+   SECTION 9: UTILITY CLASSES & ANIMATIONS
+   ──────────────────────────────────────────────────────────── */
+
+/* ── LOADING PULSE ──────────────────────────────────────────
+   Fades opacity in and out — applied to .widget-loading
+   elements while data is being fetched from Supabase.
+────────────────────────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 0.3; }
+}
+
+.widget-loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ── FADE IN ────────────────────────────────────────────────
+   Applied to widgets after data loads. Smoothly fades content
+   in and floats it up slightly instead of it popping in place.
+────────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px); /* starts 6px below final position */
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+/* ── DRIFTING PETAL ─────────────────────────────────────────
+   For decorative floating sakura petals in the background.
+   translateY moves from above screen to below it.
+   rotate spins the petal as it falls.
+────────────────────────────────────────────────────────────── */
+@keyframes drift {
+  0%   { transform: translateY(-20px) rotate(0deg);    opacity: 0; }
+  10%  { opacity: 0.4; }
+  90%  { opacity: 0.3; }
+  100% { transform: translateY(100vh) rotate(360deg);  opacity: 0; }
+}
+
+.petal-drift {
+  position: fixed;
+  pointer-events: none; /* petals don't block taps */
+  animation: drift linear infinite;
+  z-index: 0;
+}
+
+/* ── RESPECT REDUCED MOTION ─────────────────────────────────
+   Some users enable "Reduce Motion" in iOS accessibility
+   settings (motion sensitivity, epilepsy, etc).
+   This disables ALL animations for those users automatically.
+────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

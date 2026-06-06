@@ -1,0 +1,57 @@
+# ============================================================
+# .gitignore — Family Hub
+# ============================================================
+# This file tells Git which files to NEVER upload to GitHub.
+# Each line is a file or folder pattern to ignore.
+# Lines starting with # are comments — Git skips them.
+#
+# Rule of thumb: anything secret, anything auto-generated,
+# and anything that only makes sense on your specific computer
+# should be in here.
+# ============================================================
+
+
+# ── SECRETS — NEVER UPLOAD THESE ────────────────────────────
+# config.js holds your Supabase URL and API key.
+# If this ever ended up on GitHub your database would be
+# exposed to the entire internet. This is the most important
+# line in this entire file.
+config.js
+
+
+# ── MACOS SYSTEM FILES ───────────────────────────────────────
+# .DS_Store is a hidden file macOS creates in every folder
+# to store icon positions and view settings. It is specific
+# to your computer and meaningless to anyone else.
+.DS_Store
+**/.DS_Store
+
+
+# ── WINDOWS SYSTEM FILES ────────────────────────────────────
+# Thumbs.db is a hidden file Windows creates to cache folder
+# thumbnail images. Same idea as .DS_Store — computer specific.
+Thumbs.db
+desktop.ini
+
+
+# ── VS CODE SETTINGS ─────────────────────────────────────────
+# The .vscode folder holds your personal editor preferences
+# like font size, theme, and extension settings.
+# These are specific to your machine and not part of the app.
+.vscode/
+
+
+# ── NODE MODULES ─────────────────────────────────────────────
+# If you ever install npm packages, they go in node_modules/.
+# This folder can contain hundreds of thousands of files and
+# should never be uploaded — it gets regenerated from
+# package.json with a single 'npm install' command.
+node_modules/
+
+
+# ── ENVIRONMENT FILES ────────────────────────────────────────
+# .env files are another common way to store secrets.
+# We use config.js instead but this covers the pattern.
+.env
+.env.local
+.env.production

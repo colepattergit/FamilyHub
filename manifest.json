@@ -1,0 +1,28 @@
+{
+  "name": "家族ハブ — Family Hub",
+  "short_name": "家族ハブ",
+  "description": "A Japanese-inspired family hub for calendar, shopping, and budget.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdf6ee",
+  "theme_color": "#f9a8c9",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

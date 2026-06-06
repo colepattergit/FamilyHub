@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  index.html — Family Hub · Home Dashboard
+  ============================================================
+  This is the ENTRY POINT of the entire app. When your wife
+  or you tap the icon on your iPhone home screen, this is the
+  first (and main) file the browser loads.
+
+  It does three things:
+    1. Configures the page for iPhone (viewport, web-app meta tags)
+    2. Loads all our styles, fonts, and scripts
+    3. Renders the home dashboard layout with live widgets
+  ============================================================
+-->
+<html lang="en">
+
+<head>
+  <!-- ─────────────────────────────────────────────────────
+    CHARACTER ENCODING
+    Tells the browser to use UTF-8 — the universal character
+    set. Required for Japanese hiragana/katakana to display
+    correctly. Must be the very first tag inside <head>.
+  ───────────────────────────────────────────────────────── -->
+  <meta charset="UTF-8" />
+
+  <!-- ─────────────────────────────────────────────────────
+    IPHONE VIEWPORT CONFIGURATION
+    This single line is what makes the app look correct on
+    an iPhone instead of a tiny zoomed-out desktop page.
+
+    width=device-width  → use the phone's actual screen width
+    initial-scale=1.0   → don't zoom in or out on first load
+    viewport-fit=cover  → extend into the iPhone notch/corners
+                          so content fills edge to edge
+  ───────────────────────────────────────────────────────── -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- ─────────────────────────────────────────────────────
+    WEB APP META TAGS (iPhone Home Screen Behavior)
+    These tell Safari: "when saved to home screen, behave
+    like a native app, not a browser tab."
+
+    apple-mobile-web-app-capable → hides the Safari address
+      bar and browser chrome so it looks like a real app
+
+    apple-mobile-web-app-status-bar-style → "black-translucent"
+      makes the iPhone status bar (time, battery) transparent
+      so our cream background shows through behind it
+
+    apple-mobile-web-app-title → the name shown under the icon
+      on the home screen (keep it short — 12 chars max)
+  ───────────────────────────────────────────────────────── -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="家族ハブ" />
+
+  <!-- ─────────────────────────────────────────────────────
+    IPHONE HOME SCREEN ICON
+    When the user taps "Add to Home Screen" in Safari, this
+    is the icon that appears on their iPhone home screen.
+    We'll create the actual icon image later — for now the
+    path is set so we just need to drop the file in place.
+
+    apple-touch-icon → iPhone-specific icon format
+    sizes="180x180"  → the correct resolution for modern iPhones
+  ───────────────────────────────────────────────────────── -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
+
+  <!-- ─────────────────────────────────────────────────────
+    WEB APP MANIFEST
+    Links to our manifest.json file which tells the browser
+    the app's name, colors, icon, and display behavior.
+    Required for proper Progressive Web App (PWA) behavior.
+  ───────────────────────────────────────────────────────── -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- ─────────────────────────────────────────────────────
+    PAGE TITLE
+    Shows in the browser tab and in Safari's share sheet.
+    The Japanese characters (家族ハブ) mean "Family Hub."
+  ───────────────────────────────────────────────────────── -->
+  <title>家族ハブ — Family Hub</title>
+
+  <!-- ─────────────────────────────────────────────────────
+    GOOGLE FONTS — TWO FONT IMPORTS
+    We're loading two fonts from Google's free font library:
+
+    1. Kaisei Decol — a Japanese-flavored serif font used for
+       headings, the app title, and featured text. It has an
+       ink-brush quality that gives the app its Japanese feel.
+       Weights: 400 (regular), 700 (bold)
+
+    2. Noto Sans JP — a clean, modern sans-serif designed to
+       display both English AND Japanese hiragana/katakana
+       beautifully. Used for all body text, labels, and UI.
+       Weights: 300 (light), 400 (regular), 500 (medium), 700 (bold)
+
+    &display=swap → loads fonts progressively; text is visible
+    immediately using a system font, then swaps to our custom
+    font once it finishes downloading. No invisible text flash.
+  ───────────────────────────────────────────────────────── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- ─────────────────────────────────────────────────────
+    OUR STYLESHEET
+    Links to style.css — the file where every color variable,
+    font rule, and layout style is defined. Loaded in <head>
+    so styles are applied before the page is painted, preventing
+    a flash of unstyled content.
+  ───────────────────────────────────────────────────────── -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════
+    APP WRAPPER
+    The outermost container for the entire app. This div is
+    given the CSS class "app-wrapper" which constrains the
+    max width, centers on tablets, and sets up the flex column
+    layout that stacks header → content → nav vertically.
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="app-wrapper">
+
+    <!-- ─────────────────────────────────────────────────
+      SAFE AREA TOP SPACER
+      On iPhones with a notch (iPhone X and later) or a
+      Dynamic Island (iPhone 14 Pro+), the top of the screen
+      is occupied by system UI. This div uses the CSS
+      env(safe-area-inset-top) variable — provided by iOS —
+      to push our content below that hardware notch.
+      Without this, our header would hide behind the notch.
+    ───────────────────────────────────────────────────── -->
+    <div class="safe-area-top"></div>
+
+    <!-- ─────────────────────────────────────────────────
+      APP HEADER
+      The top bar that appears on every page. Contains:
+        - The app title in Japanese (家族ハブ)
+        - The subtitle in romaji/English
+        - A kana accent word (さくら = sakura) on the right
+      This is purely decorative/branding — not a nav element.
+    ───────────────────────────────────────────────────── -->
+    <header class="app-header">
+      <div class="header-left">
+        <!--
+          The title uses the Kaisei Decol serif font.
+          家族ハブ = Kazoku Habu = Family Hub in Japanese.
+          The class "app-title" applies the large serif styling.
+        -->
+        <h1 class="app-title">家族ハブ</h1>
+        <!--
+          Subtitle in small caps — shows the English translation
+          and which page we're on. The "app-subtitle" class
+          styles this in the Yuzu (orange) color with wide
+          letter-spacing for a clean, badge-like feel.
+        -->
+        <p class="app-subtitle">FAMILY HUB · HOME</p>
+      </div>
+      <div class="header-right">
+        <!--
+          A decorative kana word in the top-right corner.
+          さくら = sakura (cherry blossom). This is a visual
+          accent only — it reinforces the Japanese aesthetic.
+          The "kana-accent" class styles it in pink/sakura color.
+        -->
+        <span class="kana-accent">さくら</span>
+      </div>
+    </header>
+
+    <!-- ─────────────────────────────────────────────────
+      CHERRY BLOSSOM BRANCH DIVIDER
+      An inline SVG that draws the cherry blossom branch
+      separating the header from the dashboard content.
+
+      Using inline SVG (instead of an image file) means:
+        - No extra file to load = faster
+        - Scales perfectly to any screen width
+        - Can be animated with CSS later
+    ───────────────────────────────────────────────────── -->
+    <div class="branch-divider" aria-hidden="true">
+      <svg viewBox="0 0 375 52" xmlns="http://www.w3.org/2000/svg" width="100%" height="52">
+        <!-- Main branch sweeping left to right across the screen -->
+        <path d="M-5 40 Q50 34 100 30 Q155 26 205 28 Q258 30 305 24 Q335 20 380 16"
+          fill="none" stroke="#8b5e3c" stroke-width="2" stroke-linecap="round"/>
+        <!-- Sub-branch growing upward around x=100 -->
+        <path d="M100 30 Q118 20 140 12"
+          fill="none" stroke="#8b5e3c" stroke-width="1.3" stroke-linecap="round"/>
+        <!-- Sub-branch growing upward around x=205 -->
+        <path d="M205 28 Q218 16 235 9"
+          fill="none" stroke="#8b5e3c" stroke-width="1.1" stroke-linecap="round"/>
+        <!-- Tiny twig near x=270 -->
+        <path d="M270 25 Q280 16 290 10"
+          fill="none" stroke="#8b5e3c" stroke-width="0.9" stroke-linecap="round"/>
+        <!-- Tiny twig near start -->
+        <path d="M55 34 Q62 24 72 17"
+          fill="none" stroke="#8b5e3c" stroke-width="0.9" stroke-linecap="round"/>
+
+        <!-- Blossom at twig tip x=140, y=12 -->
+        <g transform="translate(140,12)">
+          <ellipse rx="5" ry="2.8" fill="#f9a8c9" transform="rotate(0) translate(0,-4.5)"/>
+          <ellipse rx="5" ry="2.8" fill="#f9a8c9" transform="rotate(72) translate(0,-4.5)"/>
+          <ellipse rx="5" ry="2.8" fill="#f9a8c9" transform="rotate(144) translate(0,-4.5)"/>
+          <ellipse rx="5" ry="2.8" fill="#f9a8c9" transform="rotate(216) translate(0,-4.5)"/>
+          <ellipse rx="5" ry="2.8" fill="#f9a8c9" transform="rotate(288) translate(0,-4.5)"/>
+          <circle r="2.2" fill="#fbbf77"/>
+        </g>
+
+        <!-- Blossom at twig tip x=235, y=9 -->
+        <g transform="translate(235,9)">
+          <ellipse rx="4.5" ry="2.5" fill="#f9a8c9" transform="rotate(15) translate(0,-4)"/>
+          <ellipse rx="4.5" ry="2.5" fill="#f9a8c9" transform="rotate(87) translate(0,-4)"/>
+          <ellipse rx="4.5" ry="2.5" fill="#f9a8c9" transform="rotate(159) translate(0,-4)"/>
+          <ellipse rx="4.5" ry="2.5" fill="#f9a8c9" transform="rotate(231) translate(0,-4)"/>
+          <ellipse rx="4.5" ry="2.5" fill="#f9a8c9" transform="rotate(303) translate(0,-4)"/>
+          <circle r="2" fill="#fbbf77"/>
+        </g>
+
+        <!-- Blossom at twig tip x=290, y=10 — lighter cream-pink -->
+        <g transform="translate(290,10)">
+          <ellipse rx="4.2" ry="2.2" fill="#fce4ef" transform="rotate(20) translate(0,-3.8)"/>
+          <ellipse rx="4.2" ry="2.2" fill="#fce4ef" transform="rotate(92) translate(0,-3.8)"/>
+          <ellipse rx="4.2" ry="2.2" fill="#fce4ef" transform="rotate(164) translate(0,-3.8)"/>
+          <ellipse rx="4.2" ry="2.2" fill="#fce4ef" transform="rotate(236) translate(0,-3.8)"/>
+          <ellipse rx="4.2" ry="2.2" fill="#fce4ef" transform="rotate(308) translate(0,-3.8)"/>
+          <circle r="1.8" fill="#fbbf77"/>
+        </g>
+
+        <!-- Blossom at small twig x=72, y=17 -->
+        <g transform="translate(72,17)">
+          <ellipse rx="4" ry="2.2" fill="#f9a8c9" transform="rotate(10) translate(0,-3.5)"/>
+          <ellipse rx="4" ry="2.2" fill="#f9a8c9" transform="rotate(82) translate(0,-3.5)"/>
+          <ellipse rx="4" ry="2.2" fill="#f9a8c9" transform="rotate(154) translate(0,-3.5)"/>
+          <ellipse rx="4" ry="2.2" fill="#f9a8c9" transform="rotate(226) translate(0,-3.5)"/>
+          <ellipse rx="4" ry="2.2" fill="#f9a8c9" transform="rotate(298) translate(0,-3.5)"/>
+          <circle r="1.8" fill="#fbbf77"/>
+        </g>
+
+        <!-- Bud (closed) along main branch -->
+        <g transform="translate(307,23)">
+          <ellipse rx="2.8" ry="4.5" fill="#f9a8c9" transform="rotate(-8)"/>
+          <ellipse rx="2.2" ry="3.5" fill="#fce4ef" transform="rotate(8)"/>
+        </g>
+
+        <!-- Drifting fallen petals below the branch -->
+        <ellipse cx="130" cy="44" rx="4.5" ry="2.2" fill="#f9a8c9" opacity="0.5" transform="rotate(28 130 44)"/>
+        <ellipse cx="248" cy="46" rx="4" ry="2" fill="#fce4ef" opacity="0.45" transform="rotate(-18 248 46)"/>
+        <ellipse cx="170" cy="48" rx="3.5" ry="1.8" fill="#f9a8c9" opacity="0.35" transform="rotate(45 170 48)"/>
+      </svg>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────
+      MAIN CONTENT AREA
+      This scrollable region holds all the dashboard widgets.
+      overflow-y: auto allows the widgets to scroll up if
+      there are more than fit on screen.
+    ───────────────────────────────────────────────────── -->
+    <main class="main-content">
+
+      <!-- ── GREETING BANNER ──────────────────────────
+        A personalized welcome message at the top of the
+        dashboard. The greeting and date are set dynamically
+        by app.js based on the current time.
+        id= attributes allow JavaScript to find and update
+        these elements without reloading the page.
+      ─────────────────────────────────────────────────── -->
+      <div class="greeting-banner">
+        <p class="greeting-text" id="greeting-text">Good morning ✿</p>
+        <p class="greeting-date" id="greeting-date">Loading...</p>
+      </div>
+
+      <!-- ── WIDGETS GRID ──────────────────────────────
+        The three live dashboard cards. Each is an <a> tag
+        so the whole card is tappable and navigates to that
+        section's full page.
+      ─────────────────────────────────────────────────── -->
+      <div class="widgets-grid">
+
+        <!-- CALENDAR WIDGET
+          カレンダー = "karendaa" = calendar
+          app.js fills id="widget-calendar-events" with today's events
+        -->
+        <a class="widget-card" href="pages/calendar.html">
+          <div class="widget-header">
+            <span class="widget-title">Calendar</span>
+            <span class="widget-kana">カレンダー</span>
+          </div>
+          <div class="widget-body" id="widget-calendar-events">
+            <p class="widget-loading">Loading events...</p>
+          </div>
+        </a>
+
+        <!-- SHOPPING WIDGET
+          買い物 = "kaimono" = shopping
+          app.js fills id="widget-shopping-status" with item counts
+        -->
+        <a class="widget-card" href="pages/shopping.html">
+          <div class="widget-header">
+            <span class="widget-title">Shopping</span>
+            <span class="widget-kana">買い物</span>
+          </div>
+          <div class="widget-body" id="widget-shopping-status">
+            <p class="widget-loading">Loading list...</p>
+          </div>
+        </a>
+
+        <!-- BUDGET WIDGET
+          予算 = "yosan" = budget
+          app.js fills id="widget-budget-progress" with progress bar
+        -->
+        <a class="widget-card" href="pages/budget.html">
+          <div class="widget-header">
+            <span class="widget-title">Budget</span>
+            <span class="widget-kana">予算</span>
+          </div>
+          <div class="widget-body" id="widget-budget-progress">
+            <p class="widget-loading">Loading budget...</p>
+          </div>
+        </a>
+
+      </div>
+      <!-- end .widgets-grid -->
+
+    </main>
+    <!-- end .main-content -->
+
+    <!-- ─────────────────────────────────────────────────
+      BOTTOM NAVIGATION BAR
+      Fixed to the bottom of the screen. Five tappable items
+      that navigate between the app's main sections.
+      The "active" class highlights whichever page you're on.
+    ───────────────────────────────────────────────────── -->
+    <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+
+      <a class="nav-item active" href="index.html" aria-current="page">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </a>
+
+      <a class="nav-item" href="pages/calendar.html">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Calendar</span>
+      </a>
+
+      <a class="nav-item" href="pages/shopping.html">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-label">Shopping</span>
+      </a>
+
+      <a class="nav-item" href="pages/budget.html">
+        <span class="nav-icon">💴</span>
+        <span class="nav-label">Budget</span>
+      </a>
+
+      <a class="nav-item" href="pages/settings.html">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Settings</span>
+      </a>
+
+    </nav>
+
+    <!-- ─────────────────────────────────────────────────
+      SAFE AREA BOTTOM SPACER
+      Prevents the bottom nav from overlapping the iPhone
+      home indicator (the swipe bar at the bottom).
+    ───────────────────────────────────────────────────── -->
+    <div class="safe-area-bottom"></div>
+
+  </div>
+  <!-- end .app-wrapper -->
+
+  <!-- ─────────────────────────────────────────────────────
+    SCRIPTS — LOADED AT BOTTOM OF BODY
+    Placed here so all HTML above is parsed before JS runs.
+    type="module" enables import/export between files.
+  ───────────────────────────────────────────────────────── -->
+  <script type="module" src="supabase.js"></script>
+  <script type="module" src="app.js"></script>
+
+</body>
+</html>
