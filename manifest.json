@@ -2,7 +2,7 @@
   "name": "家族ハブ — Family Hub",
   "short_name": "家族ハブ",
   "description": "A Japanese-inspired family hub for calendar, shopping, and budget.",
-  "start_url": "/",
+  "start_url": "/FamilyHub/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#fdf6ee",
