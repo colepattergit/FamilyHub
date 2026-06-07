@@ -177,6 +177,7 @@
       display: flex;
       flex-direction: column;
       transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      background: var(--color-cream);
       /* cubic-bezier gives a natural iOS-like slide feel */
     }
 
@@ -1453,77 +1454,59 @@
        Builds item row HTML and injects into the items list.
        Also manages checkout button visibility.
        ====================================================== */
-    function renderItems() {
-      const listEl  = document.getElementById('items-list');
-      const emptyEl = document.getElementById('items-empty');
+  function renderItems() {
+  const listEl = document.getElementById('items-list');
 
-      if (items.length === 0) {
-        listEl.innerHTML = '';
-        emptyEl.style.display = 'block';
-        document.getElementById('checkout-btn').classList.remove('visible');
-        return;
-      }
+  if (items.length === 0) {
+    listEl.innerHTML = '<p class="items-empty" id="items-empty">No items yet.<br>Add your first item below!</p>';
+    document.getElementById('checkout-btn').classList.remove('visible');
+    return;
+  }
 
-      emptyEl.style.display = 'none';
+  /* Check if any items are in cart → show checkout button */
+  const inCartCount = items.filter(i => i.in_cart).length;
+  const checkoutBtn = document.getElementById('checkout-btn');
+  if (inCartCount > 0) {
+    checkoutBtn.classList.add('visible');
+    checkoutBtn.textContent = `✓ Checkout (${inCartCount})`;
+  } else {
+    checkoutBtn.classList.remove('visible');
+  }
 
-      /* Check if any items are in cart → show checkout button */
-      const inCartCount = items.filter(i => i.in_cart).length;
-      const checkoutBtn = document.getElementById('checkout-btn');
-      if (inCartCount > 0) {
-        checkoutBtn.classList.add('visible');
-        checkoutBtn.textContent = `✓ Checkout (${inCartCount})`;
-      } else {
-        checkoutBtn.classList.remove('visible');
-      }
+  /* Build item row HTML */
+  const html = items.map((item, index) => {
+    const totalPrice = item.price
+      ? `$${(item.price * item.quantity).toFixed(2)}`
+      : '';
+    const delay = index * 0.04;
 
-      /* Build item row HTML */
-      const html = items.map((item, index) => {
-        /* Calculate total price: unit price × quantity
-           toFixed(2) formats to 2 decimal places e.g. "3.98"
-           If no price set, show nothing */
-        const totalPrice = item.price
-          ? `$${(item.price * item.quantity).toFixed(2)}`
-          : '';
-
-        /* Delay stagger for animation */
-        const delay = index * 0.04;
-
-        return `
-          <div
-            class="item-row ${item.in_cart ? 'in-cart' : ''}"
-            style="animation-delay: ${delay}s"
-            id="item-row-${item.id}"
-          >
-            <!-- Tap circle to toggle in-cart -->
-            <div
-              class="item-check ${item.in_cart ? 'checked' : ''}"
-              onclick="toggleInCart(${item.id})"
-            >
-              ${item.in_cart ? '✓' : ''}
-            </div>
-
-            <!-- Item name and meta info -->
-            <div class="item-details">
-              <p class="item-name">${item.name}</p>
-              <div class="item-meta">
-                <span>Qty: ${item.quantity}</span>
-                ${item.necessity ? '<span class="necessity-star">⭐ Must-have</span>' : ''}
-              </div>
-            </div>
-
-            <!-- Total price -->
-            ${totalPrice ? `<span class="item-price">${totalPrice}</span>` : ''}
-
-            <!-- Delete button -->
-            <button class="item-delete" onclick="deleteItem(${item.id})">
-              ✕
-            </button>
+    return `
+      <div
+        class="item-row ${item.in_cart ? 'in-cart' : ''}"
+        style="animation-delay: ${delay}s"
+        id="item-row-${item.id}"
+      >
+        <div
+          class="item-check ${item.in_cart ? 'checked' : ''}"
+          onclick="toggleInCart(${item.id})"
+        >
+          ${item.in_cart ? '✓' : ''}
+        </div>
+        <div class="item-details">
+          <p class="item-name">${item.name}</p>
+          <div class="item-meta">
+            <span>Qty: ${item.quantity}</span>
+            ${item.necessity ? '<span class="necessity-star">⭐ Must-have</span>' : ''}
           </div>
-        `;
-      }).join('');
+        </div>
+        ${totalPrice ? `<span class="item-price">${totalPrice}</span>` : ''}
+        <button class="item-delete" onclick="deleteItem(${item.id})">✕</button>
+      </div>
+    `;
+  }).join('');
 
-      listEl.innerHTML = html;
-    }
+  listEl.innerHTML = html;
+}
 
     /* ======================================================
        TOGGLE IN-CART
