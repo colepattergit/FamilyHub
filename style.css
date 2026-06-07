@@ -645,3 +645,31 @@ img {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── PREVENT SCROLL AND LOCK TO SCREEN ──────────────────────
+   Prevents the page from scrolling or shifting position.
+   Locks the app to exactly the phone screen size.
+   position: fixed pins the wrapper to the viewport so
+   it can never be pushed up or down by browser behavior.
+────────────────────────────────────────────────────────────── */
+html, body {
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+}
+
+.app-wrapper {
+  height: 100dvh; /* dynamic viewport height — accounts for iPhone chrome */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1; /* takes up all remaining space between header and nav */
+  overflow-y: auto; /* only this section scrolls, not the whole page */
+  -webkit-overflow-scrolling: touch; /* smooth momentum scrolling on iPhone */
+}
