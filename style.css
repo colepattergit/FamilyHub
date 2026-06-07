@@ -673,3 +673,156 @@ html, body {
   overflow-y: auto; /* only this section scrolls, not the whole page */
   -webkit-overflow-scrolling: touch; /* smooth momentum scrolling on iPhone */
 }
+
+/* ============================================================
+   SHOPPING WIDGET — STORE CARDS ON HOME PAGE
+   ============================================================
+   These styles control how store cards look inside the
+   shopping widget on the home dashboard (index.html).
+
+   Each store gets its own mini card that is tappable and
+   navigates directly to that store's shopping list.
+
+   Add these styles to the bottom of your style.css file.
+   ============================================================ */
+
+/* ── MAIN CONTENT SCROLLABLE ─────────────────────────────────
+   Makes the home page main content area scrollable so all
+   three widget cards are accessible even when they expand
+   beyond the visible screen height.
+
+   overflow-y: auto → scroll only when content exceeds height
+   -webkit-overflow-scrolling → smooth momentum on iPhone
+   padding-bottom → prevents last widget from being hidden
+   behind the bottom nav bar
+────────────────────────────────────────────────────────────── */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 20px;
+}
+
+/* ── WIDGET STORE LIST ───────────────────────────────────────
+   Container that holds all the store mini-cards inside the
+   shopping widget. No padding needed — cards handle their own.
+────────────────────────────────────────────────────────────── */
+.widget-store-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* space between each store card */
+  margin-bottom: 10px;
+}
+
+/* ── WIDGET STORE CARD ───────────────────────────────────────
+   Each store's mini card inside the home page widget.
+   Uses <a> tag so the whole card is a tappable link.
+
+   display: flex → puts left content and right arrow side by side
+   text-decoration: none → removes the default link underline
+────────────────────────────────────────────────────────────── */
+.widget-store-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--color-cream);
+  border-radius: 10px;
+  text-decoration: none;
+  border: 1px solid rgba(249, 168, 201, 0.2);
+  transition: background 0.15s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+  /* removes grey flash on iPhone tap */
+}
+
+/* Tap feedback — slightly darker background */
+.widget-store-card:active {
+  background: rgba(249, 168, 201, 0.1);
+  transform: scale(0.98);
+}
+
+/* Left side — store name stacked above item count */
+.widget-store-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0; /* prevents text overflow */
+}
+
+/* Store name — uses Kaisei Decol for the Japanese serif feel */
+.widget-store-name {
+  font-family: 'Kaisei Decol', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-bark-900);
+  /* Truncate very long store names with ... */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Item count below store name */
+.widget-store-count {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 11px;
+  color: var(--color-text-label, #8a7060);
+}
+
+/* Right side — secret badge and arrow */
+.widget-store-card-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  /* flex-shrink: 0 prevents this side from squishing */
+}
+
+/* Secret list emoji badge */
+.widget-secret-badge {
+  font-size: 14px;
+}
+
+/* Chevron arrow → on right of each card */
+.widget-store-arrow {
+  font-size: 16px;
+  color: var(--color-sakura-400);
+  opacity: 0.6;
+}
+
+/* ── VIEW ALL BUTTON ─────────────────────────────────────────
+   "Manage Lists →" link below the store cards.
+   Takes user to the full shopping page where lists are created.
+
+   display: block → makes the link take full width
+   text-align: center → centers the text
+────────────────────────────────────────────────────────────── */
+.widget-view-all-btn {
+  display: block;
+  text-align: center;
+  padding: 8px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-yuzu-700);
+  text-decoration: none;
+  letter-spacing: 0.5px;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s ease;
+}
+
+.widget-view-all-btn:active {
+  opacity: 0.6;
+}
+
+/* ── WIDGET EMPTY STATE ──────────────────────────────────────
+   Shown when there is no data to display in a widget.
+   Consistent across all three widgets on the home page.
+────────────────────────────────────────────────────────────── */
+.widget-empty {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  color: var(--color-text-label, #8a7060);
+  text-align: center;
+  padding: 12px 0;
+  margin: 0;
+}

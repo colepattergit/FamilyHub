@@ -1,66 +1,70 @@
 /* ============================================================
-   app.js — Home Dashboard Logic (Updated)
+   app.js — Home Dashboard Logic
    ============================================================
-   Updated from the original to add two things:
- 
-     1. AUTH AWARENESS — reads the logged-in user from the
-        session saved by login.html and personalizes the
-        greeting with their name and accent color.
- 
-     2. FIXED SHOPPING TABLE — the shopping widget now queries
-        the correct tables: shopping_stores and shopping_items
-        instead of the old single 'shopping' table.
- 
-   Everything else works the same as before.
+   This is the brain of the home dashboard (index.html).
+
+   WHAT CHANGED IN THIS VERSION:
+     1. Shopping widget now shows individual store cards
+        instead of a summary. Each card links directly to
+        that store's item list in shopping.html?store=ID.
+
+     2. Home page main content area is now scrollable so
+        all three widgets are visible even if they expand
+        beyond the screen height.
+
+   Everything else (greeting, calendar, budget) unchanged.
    ============================================================ */
- 
+
 /* ── IMPORT SUPABASE CONNECTION ──────────────────────────────
-   The single shared database client from supabase.js.
+   Single shared database client from supabase.js.
+   Every query in this file goes through this one object.
 ────────────────────────────────────────────────────────────── */
 import { supabase } from './supabase.js';
- 
+
 /* ── IMPORT AUTH GUARD ───────────────────────────────────────
-   auth.js checks for a valid session the moment it's imported.
-   If no session exists it redirects to login before anything
-   else on this page runs. If a session exists it exports the
-   currentUser object so we can personalize the dashboard.
+   Runs a session check the moment this line executes.
+   No session → redirects to login immediately.
+   Session exists → exports currentUser for personalization.
 ────────────────────────────────────────────────────────────── */
 import { currentUser } from './auth.js';
- 
- 
+
+
 /* ════════════════════════════════════════════════════════════
    SECTION 1 — GREETING & DATE
    ════════════════════════════════════════════════════════════
-   Now personalized with the logged-in user's name.
-   Also applies their accent color to the greeting.
+   Checks the device clock and sets a personalized greeting
+   with the logged-in user's name and accent color.
+   No database needed — runs instantly on page load.
    ══════════════════════════════════════════════════════════ */
- 
+
 function setGreeting() {
   /* ── GET CURRENT HOUR ─────────────────────────────────────
-     Same as before — check the device clock for time of day.
+     new Date() = right now as a Date object.
+     .getHours() = the current hour as 0-23.
   ────────────────────────────────────────────────────────── */
   const now  = new Date();
   const hour = now.getHours();
- 
-  /* ── CHOOSE GREETING ─────────────────────────────────────
-     Now includes the user's display name at the end.
-     currentUser.display_name is "Cole" or "Maggie" depending
-     on who logged in. If somehow null, falls back to empty.
+
+  /* ── CHOOSE GREETING BASED ON TIME ──────────────────────
+     currentUser?.display_name uses optional chaining (?.)
+     which safely returns undefined if currentUser is null,
+     instead of throwing an error. The || '' fallback means
+     if display_name is undefined, use an empty string.
   ────────────────────────────────────────────────────────── */
   const name = currentUser?.display_name || '';
   let greeting;
- 
+
   if (hour < 12) {
-    greeting = `Good morning, ${name} ✿`;
+    greeting = `Good morning, ${name} ✿`;      /* midnight–11:59am */
   } else if (hour < 17) {
-    greeting = `Good afternoon, ${name} ✿`;
+    greeting = `Good afternoon, ${name} ✿`;    /* noon–4:59pm */
   } else {
-    greeting = `Good evening, ${name} ✿`;
+    greeting = `Good evening, ${name} ✿`;      /* 5pm–midnight */
   }
- 
-  /* ── FORMAT DATE ─────────────────────────────────────────
-     Same date formatting as before.
-     Result: "Friday, June 6, 2025"
+
+  /* ── FORMAT TODAY'S DATE ─────────────────────────────────
+     toLocaleDateString with these options gives:
+     "Friday, June 6, 2025"
   ────────────────────────────────────────────────────────── */
   const dateString = now.toLocaleDateString('en-US', {
     weekday: 'long',
@@ -68,54 +72,52 @@ function setGreeting() {
     month:   'long',
     day:     'numeric'
   });
- 
-  /* ── INJECT INTO HTML ────────────────────────────────────
-     Update the greeting and date text in the dashboard.
+
+  /* ── INJECT TEXT INTO HTML ───────────────────────────────
+     Finds the elements by their id= attributes and sets
+     their text content to our greeting and date strings.
   ────────────────────────────────────────────────────────── */
   document.getElementById('greeting-text').textContent = greeting;
   document.getElementById('greeting-date').textContent = dateString;
- 
+
   /* ── APPLY USER ACCENT COLOR ─────────────────────────────
-     Each user has a color stored in their session.
-     We apply it to the greeting text so Cole sees blue
-     and Maggie sees pink when they open the app.
-     setProperty sets a CSS custom property on the root
-     element so it cascades down to any element that uses it.
+     Cole sees blue (#7dd3fc), Maggie sees pink (#f9a8c9).
+     We apply it to the greeting text as a personal touch.
+     setProperty sets a CSS variable on the root element
+     so any CSS rule using --color-user-accent picks it up.
   ────────────────────────────────────────────────────────── */
   if (currentUser?.color) {
     document.documentElement.style.setProperty(
       '--color-user-accent',
       currentUser.color
     );
-    /* Apply color to the greeting text element directly */
     const greetingEl = document.getElementById('greeting-text');
     if (greetingEl) {
       greetingEl.style.color = currentUser.color;
     }
   }
 }
- 
- 
+
+
 /* ════════════════════════════════════════════════════════════
    SECTION 2 — CALENDAR WIDGET
    ════════════════════════════════════════════════════════════
-   Fetches today's events. Now filters by visibility so
-   private events only show to the right person.
+   Fetches today's events filtered by visibility.
+   Private events (cole-only or maggie-only) only show
+   to the correct person based on who is logged in.
    ══════════════════════════════════════════════════════════ */
- 
+
 async function loadCalendarWidget() {
+  /* Get today's date as YYYY-MM-DD to match database format */
   const today     = new Date().toISOString().split('T')[0];
   const container = document.getElementById('widget-calendar-events');
   const userName  = currentUser?.name; /* 'cole' or 'maggie' */
- 
+
   /* ── FETCH TODAY'S EVENTS ─────────────────────────────────
-     Selects events for today where visibility is either:
-       'both'     → everyone sees it
-       userName   → only this person sees it (e.g. 'cole')
- 
-     The .or() filter handles these two cases in one query.
-     The backtick template builds a filter string like:
-     "visibility.eq.both,visibility.eq.cole"
+     .or() lets us filter by multiple conditions at once.
+     We want events where visibility is 'both' OR matches
+     the current user's name — so private events only show
+     to the right person.
   ────────────────────────────────────────────────────────── */
   const { data, error } = await supabase
     .from('events')
@@ -123,21 +125,21 @@ async function loadCalendarWidget() {
     .eq('date', today)
     .or(`visibility.eq.both,visibility.eq.${userName}`)
     .order('time', { ascending: true });
- 
+
   if (error) {
     console.error('Calendar widget error:', error.message);
     container.innerHTML = '<p class="widget-empty">Could not load events.</p>';
     return;
   }
- 
+
   if (data.length === 0) {
     container.innerHTML = '<p class="widget-empty">Nothing scheduled today ✿</p>';
     return;
   }
- 
-  /* ── BUILD EVENT LIST ────────────────────────────────────
-     Same map/join approach as before but now also shows
-     the category as a colored label.
+
+  /* ── BUILD EVENT LIST HTML ───────────────────────────────
+     .map() loops through each event and returns an HTML
+     string. .join('') combines them into one string.
   ────────────────────────────────────────────────────────── */
   const eventsHTML = data.map(event => `
     <div class="calendar-event fade-in">
@@ -145,125 +147,155 @@ async function loadCalendarWidget() {
       <span>${formatTime(event.time)} — ${event.title}</span>
     </div>
   `).join('');
- 
+
   container.innerHTML = eventsHTML;
 }
- 
- 
+
+
 /* ════════════════════════════════════════════════════════════
    SECTION 3 — SHOPPING WIDGET (UPDATED)
    ════════════════════════════════════════════════════════════
-   CHANGED: now queries shopping_stores and shopping_items
-   instead of the old single 'shopping' table.
- 
-   Shows how many stores have active lists and total items
-   remaining across all stores.
+   CHANGED: now shows individual store cards instead of
+   a text summary. Each card is tappable and links directly
+   to that store's item list in shopping.html?store=ID.
+
+   The widget expands to fit all store cards naturally.
+   The home page itself scrolls to show everything.
    ══════════════════════════════════════════════════════════ */
- 
+
 async function loadShoppingWidget() {
   const container = document.getElementById('widget-shopping-status');
   const userName  = currentUser?.name;
- 
-  /* ── FETCH ALL SHOPPING ITEMS ────────────────────────────
-     We join shopping_items with shopping_stores by querying
-     items and asking Supabase to include the related store
-     data using the foreign key relationship we set up.
- 
-     The shopping_stores(name, secret) part tells Supabase:
-     "also give me the name and secret columns from the
-     related store row for each item"
- 
-     We filter out secret lists that belong to the other user.
-     A list is visible if: secret is false OR the store was
-     created by this user (added_by = userName).
+
+  /* ── FETCH ALL VISIBLE STORES ────────────────────────────
+     Gets all stores then filters out secret lists that
+     belong to the other user. Our own secret lists are
+     still visible to us.
   ────────────────────────────────────────────────────────── */
   const { data: stores, error } = await supabase
     .from('shopping_stores')
-    .select('id, name, secret, created_by');
- 
+    .select('id, name, secret, created_by')
+    .order('created_at', { ascending: false });
+
   if (error) {
     console.error('Shopping widget error:', error.message);
     container.innerHTML = '<p class="widget-empty">Could not load lists.</p>';
     return;
   }
- 
-  if (!stores || stores.length === 0) {
+
+  /* Filter out other person's secret lists */
+  const visibleStores = (stores || []).filter(store =>
+    !store.secret || store.created_by === userName
+  );
+
+  if (visibleStores.length === 0) {
     container.innerHTML = '<p class="widget-empty">No shopping lists yet ✿</p>';
     return;
   }
- 
-  /* ── FILTER OUT SECRET STORES ────────────────────────────
-     Hide secret lists that were created by the other person.
-     A secret list is only visible to whoever created it.
-  ────────────────────────────────────────────────────────── */
-  const visibleStores = stores.filter(store =>
-    !store.secret || store.created_by === userName
-  );
- 
-  /* ── FETCH ALL ITEMS FOR VISIBLE STORES ──────────────────
-     Get item counts for all visible stores at once by
-     passing an array of store IDs to the .in() filter.
-     .in('store_id', [...]) means "where store_id is any
-     of these values" — efficient single query.
+
+  /* ── FETCH ITEM COUNTS FOR ALL STORES ────────────────────
+     Single query gets all items across all visible stores.
+     We then group and count them in JavaScript rather than
+     making a separate query for each store — much faster.
   ────────────────────────────────────────────────────────── */
   const storeIds = visibleStores.map(s => s.id);
- 
-  const { data: items, error: itemsError } = await supabase
+
+  const { data: items } = await supabase
     .from('shopping_items')
     .select('store_id, checked_off')
     .in('store_id', storeIds);
- 
-  if (itemsError) {
-    console.error('Shopping items error:', itemsError.message);
-    container.innerHTML = '<p class="widget-empty">Could not load items.</p>';
-    return;
-  }
- 
-  /* ── COUNT TOTALS ────────────────────────────────────────
-     Count total items and how many are still unchecked.
+
+  /* ── BUILD COUNT MAP ─────────────────────────────────────
+     Creates an object like:
+     {
+       1: { total: 5, remaining: 3 },
+       2: { total: 8, remaining: 8 },
+     }
+     Keys are store IDs — lets us look up counts instantly
+     when building each card's HTML below.
   ────────────────────────────────────────────────────────── */
-  const totalItems     = items.length;
-  const remainingItems = items.filter(i => !i.checked_off).length;
-  const totalLists     = visibleStores.length;
- 
-  if (totalItems === 0) {
-    container.innerHTML = `
-      <p class="widget-empty">
-        ${totalLists} list${totalLists !== 1 ? 's' : ''} — all empty ✿
-      </p>`;
-    return;
-  }
- 
-  /* ── BUILD SUMMARY HTML ──────────────────────────────────
-     Show a quick summary of lists and items remaining.
+  const countMap = {};
+  (items || []).forEach(item => {
+    if (!countMap[item.store_id]) {
+      countMap[item.store_id] = { total: 0, remaining: 0 };
+    }
+    countMap[item.store_id].total++;
+    if (!item.checked_off) countMap[item.store_id].remaining++;
+  });
+
+  /* ── BUILD STORE CARD HTML ───────────────────────────────
+     Each store gets a mini card inside the widget.
+     Tapping the card navigates to shopping.html?store=ID
+     which opens that store's item list directly.
+
+     The card shows:
+       - Store name
+       - Item count (e.g. "3 of 7 items remaining")
+       - Secret badge if it's a private list
+       - A › arrow on the right
+  ────────────────────────────────────────────────────────── */
+  const cardsHTML = visibleStores.map(store => {
+    const counts = countMap[store.id] || { total: 0, remaining: 0 };
+
+    /* Build the count text based on how many items exist */
+    let countText;
+    if (counts.total === 0) {
+      countText = 'Empty — tap to add items';
+    } else if (counts.remaining === 0) {
+      countText = `All ${counts.total} items checked off ✓`;
+    } else {
+      countText = `${counts.remaining} of ${counts.total} remaining`;
+    }
+
+    return `
+      <a
+        class="widget-store-card"
+        href="pages/shopping.html?store=${store.id}"
+      >
+        <div class="widget-store-card-left">
+          <span class="widget-store-name">${store.name}</span>
+          <span class="widget-store-count">${countText}</span>
+        </div>
+        <div class="widget-store-card-right">
+          ${store.secret ? '<span class="widget-secret-badge">🤫</span>' : ''}
+          <span class="widget-store-arrow">›</span>
+        </div>
+      </a>
+    `;
+  }).join('');
+
+  /* ── ADD VIEW ALL LINK ───────────────────────────────────
+     Below the store cards, a link to the full shopping page
+     where new lists can be created and all lists managed.
   ────────────────────────────────────────────────────────── */
   container.innerHTML = `
-    <p class="shopping-summary fade-in">
-      <span class="shopping-count">${remainingItems}</span>
-      of ${totalItems} items remaining
-    </p>
-    <p class="shopping-summary" style="font-size:11px; color:var(--color-text-label); margin-top:4px;">
-      across ${totalLists} store list${totalLists !== 1 ? 's' : ''} ✿
-    </p>
+    <div class="widget-store-list">
+      ${cardsHTML}
+    </div>
+    <a class="widget-view-all-btn" href="pages/shopping.html">
+      Manage Lists →
+    </a>
   `;
 }
- 
- 
+
+
 /* ════════════════════════════════════════════════════════════
    SECTION 4 — BUDGET WIDGET
    ════════════════════════════════════════════════════════════
-   Now shows the current user's budget summary specifically.
-   Queries budget_months filtered by the logged-in user.
+   Shows the logged-in user's budget summary for this month.
+   Queries budget_months filtered by owner and current month.
    ══════════════════════════════════════════════════════════ */
- 
+
 async function loadBudgetWidget() {
   const container    = document.getElementById('widget-budget-progress');
   const currentMonth = new Date().toISOString().slice(0, 7);
+  /* .slice(0,7) cuts "2025-06-06T..." down to "2025-06" */
   const userName     = currentUser?.name;
- 
-  /* ── FETCH THIS USER'S BUDGET FOR THIS MONTH ─────────────
-     Filters by both month AND owner so Cole sees his budget
-     and Maggie sees hers independently.
+
+  /* ── FETCH THIS USER'S BUDGET ROW ────────────────────────
+     .single() returns one object instead of an array.
+     If no row exists for this month it returns an error
+     which we catch below and show a friendly message.
   ────────────────────────────────────────────────────────── */
   const { data, error } = await supabase
     .from('budget_months')
@@ -271,37 +303,37 @@ async function loadBudgetWidget() {
     .eq('month', currentMonth)
     .eq('owner', userName)
     .single();
- 
+
   if (error) {
-    /* No budget row yet for this user this month — that's okay */
     container.innerHTML = '<p class="widget-empty">No budget set up yet ✿</p>';
     return;
   }
- 
+
   if (!data) {
     container.innerHTML = '<p class="widget-empty">No budget for this month.</p>';
     return;
   }
- 
-  /* ── CALCULATE PERCENTAGE SPENT ──────────────────────────
-     What percentage of income has been committed to bills?
-     Math.min caps at 100 so bar never overflows.
+
+  /* ── CALCULATE PERCENTAGE ────────────────────────────────
+     How much of income is going to bills?
+     Math.min caps at 100 so bar never overflows visually.
   ────────────────────────────────────────────────────────── */
   const percentage   = data.total_income > 0
     ? Math.min(Math.round((data.total_bills / data.total_income) * 100), 100)
     : 0;
   const isOverBudget = data.total_bills > data.total_income;
- 
+
   /* ── FORMAT AS CURRENCY ──────────────────────────────────
-     toLocaleString with USD settings formats as $1,200 etc.
+     Arrow function shorthand for formatting numbers as USD.
+     fmt(1300) → "$1,300"
   ────────────────────────────────────────────────────────── */
   const fmt = n => n.toLocaleString('en-US', {
     style: 'currency', currency: 'USD', minimumFractionDigits: 0
   });
- 
-  /* ── BUILD PROGRESS BAR HTML ─────────────────────────────
-     Shows income vs bills as a visual progress bar.
-     Over-budget class turns the bar red.
+
+  /* ── BUILD PROGRESS BAR ──────────────────────────────────
+     Visual bar showing bills vs income.
+     Turns red if bills exceed income (over budget).
   ────────────────────────────────────────────────────────── */
   container.innerHTML = `
     <div class="budget-bar-wrap fade-in">
@@ -315,14 +347,18 @@ async function loadBudgetWidget() {
     </div>
   `;
 }
- 
- 
+
+
 /* ════════════════════════════════════════════════════════════
    SECTION 5 — HELPER FUNCTIONS
    ══════════════════════════════════════════════════════════ */
- 
+
 /* ── FORMAT TIME ─────────────────────────────────────────────
-   Converts 24-hour "14:30" to 12-hour "2:30 PM"
+   Converts 24-hour "14:30" to 12-hour "2:30 PM".
+   Used by the calendar widget to display event times.
+
+   Input:  "14:30"
+   Output: "2:30 PM"
 ────────────────────────────────────────────────────────────── */
 function formatTime(timeString) {
   if (!timeString) return '';
@@ -330,24 +366,32 @@ function formatTime(timeString) {
   const hour        = parseInt(hours, 10);
   const period      = hour >= 12 ? 'PM' : 'AM';
   const displayHour = hour % 12 || 12;
+  /* hour % 12 converts 13→1, 14→2 etc.
+     || 12 handles midnight (0 % 12 = 0, we want 12) */
   return `${displayHour}:${minutes} ${period}`;
 }
- 
- 
+
+
 /* ════════════════════════════════════════════════════════════
    SECTION 6 — INITIALISE DASHBOARD
+   ════════════════════════════════════════════════════════════
+   Entry point — called once when the page loads.
+   Sets greeting instantly, then loads all three widgets
+   simultaneously using Promise.all for maximum speed.
    ══════════════════════════════════════════════════════════ */
- 
+
 async function init() {
-  /* Greeting is instant — runs first so user sees it immediately */
+  /* Greeting needs no database so it runs first — instant */
   setGreeting();
- 
-  /* All three widgets load simultaneously for speed */
+
+  /* Promise.all fires all three fetches at the same time.
+     Total wait time = slowest single request, not all three added.
+     ~300ms instead of ~900ms if they ran one after another. */
   await Promise.all([
     loadCalendarWidget(),
     loadShoppingWidget(),
     loadBudgetWidget()
   ]);
 }
- 
+
 init();

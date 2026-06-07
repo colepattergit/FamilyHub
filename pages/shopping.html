@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  shopping.html — Family Hub · Shopping Lists
+  ============================================================
+  The full shopping app. This page has TWO views that animate
+  between each other on a single page — no reloads needed:
+
+  VIEW 1 — STORES VIEW (default)
+    Shows all store list cards.
+    "+" button opens a popup to create a new store list.
+    Tapping a store card animates to View 2.
+
+  VIEW 2 — ITEMS VIEW
+    Shows all items for the selected store.
+    Persistent add-item bar pinned to the bottom.
+    Shopping mode: tap items to mark in-cart.
+    Checkout button clears all in-cart items.
+    Prompts to delete list when all items are checked off.
+
+  The page also handles being opened from the home page
+  with a ?store=ID query parameter — it automatically
+  opens that store's item list directly (View 2).
+  ============================================================
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>買い物 — Shopping</title>
+
+  <!-- Same fonts as the rest of the app -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+  <!-- Shared app styles for colors, fonts, nav, safe areas -->
+  <link rel="stylesheet" href="../style.css" />
+
+  <style>
+    /* ======================================================
+       SHOPPING PAGE LAYOUT
+       ====================================================== */
+
+    /* ── PAGE WRAPPER ──────────────────────────────────────
+       Locks the page to screen height, no body scroll.
+       The inner content areas scroll independently.
+    ────────────────────────────────────────────────────────── */
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      left: 0;
+    }
+
+    .app-wrapper {
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── PAGE HEADER ───────────────────────────────────────
+       The top bar showing the page title and action button.
+       Uses the same app-header style from style.css but
+       with a right-side button that changes per view:
+         View 1 (stores) → "+" button to add a new list
+         View 2 (items)  → "⌫ Back" button to go back
+    ────────────────────────────────────────────────────────── */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      padding-top: calc(16px + env(safe-area-inset-top));
+      background: var(--color-cream);
+      border-bottom: 1px solid rgba(249, 168, 201, 0.2);
+      flex-shrink: 0;
+    }
+
+    .page-header-left {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Main page title */
+    .page-title {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    /* Japanese kana subtitle */
+    .page-kana {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 11px;
+      color: var(--color-sakura-400);
+      letter-spacing: 2px;
+      margin-top: 2px;
+    }
+
+    /* The "+" add button in top right — stores view */
+    .header-add-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: var(--color-sakura-400);
+      color: white;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+
+    .header-add-btn:active {
+      transform: scale(0.92);
+      background: var(--color-yuzu-700);
+    }
+
+    /* Back button in top right — items view */
+    .header-back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(249, 168, 201, 0.4);
+      background: transparent;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      color: var(--color-bark-900);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s ease;
+    }
+
+    .header-back-btn:active {
+      background: rgba(249, 168, 201, 0.15);
+    }
+
+    /* ======================================================
+       VIEW SYSTEM — TWO VIEWS ON ONE PAGE
+       ======================================================
+       Both views exist in the DOM at all times.
+       Only one is visible at a time.
+       Transitioning between them uses a CSS slide animation.
+       ====================================================== */
+
+    /* Container that holds both views side by side */
+    .views-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Each view takes full width and full height */
+    .view {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      /* cubic-bezier gives a natural iOS-like slide feel */
+    }
+
+    /* STORES VIEW — default position (visible) */
+    .stores-view {
+      transform: translateX(0);
+    }
+
+    /* ITEMS VIEW — starts off-screen to the right */
+    .items-view {
+      transform: translateX(100%);
+    }
+
+    /* When items view is active, both views slide left */
+    .views-container.show-items .stores-view {
+      transform: translateX(-30%);
+      /* slides left slightly — like iPhone navigation */
+    }
+
+    .views-container.show-items .items-view {
+      transform: translateX(0);
+      /* slides into view from the right */
+    }
+
+    /* ======================================================
+       STORES VIEW CONTENT
+       ====================================================== */
+
+    /* Scrollable area for store cards */
+    .stores-scroll {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 20px;
+      padding-bottom: 20px;
+    }
+
+    /* ── STORE CARD ────────────────────────────────────────
+       Each store gets its own tappable card.
+       Shows store name, item count, and a secret badge
+       if it was created as a secret list.
+    ────────────────────────────────────────────────────────── */
+    .store-card {
+      background: white;
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow:
+        0 2px 12px rgba(61, 35, 20, 0.06),
+        0 1px 3px rgba(61, 35, 20, 0.04);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+      /* Animate in when first appearing */
+      animation: cardSlideIn 0.3s ease both;
+    }
+
+    .store-card:active {
+      transform: scale(0.98);
+      box-shadow: 0 1px 6px rgba(61, 35, 20, 0.06);
+    }
+
+    /* Left side — store name and item count */
+    .store-card-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* Store name */
+    .store-card-name {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+    }
+
+    /* Item count below name */
+    .store-card-count {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 12px;
+      color: var(--color-text-label, #8a7060);
+    }
+
+    /* Right side — badges and arrow */
+    .store-card-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Secret badge — shown on secret lists */
+    .secret-badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      background: rgba(196, 181, 253, 0.2);
+      color: #7c3aed;
+      border-radius: 10px;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+
+    /* Necessity-only badge — shown when list has necessities */
+    .necessity-badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      background: rgba(134, 239, 172, 0.2);
+      color: #16a34a;
+      border-radius: 10px;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+
+    /* Arrow chevron on right of card */
+    .store-card-arrow {
+      font-size: 16px;
+      color: var(--color-sakura-400);
+      opacity: 0.6;
+    }
+
+    /* Empty state when no stores exist yet */
+    .stores-empty {
+      text-align: center;
+      padding: 60px 20px;
+      font-family: 'Noto Sans JP', sans-serif;
+      color: var(--color-text-label, #8a7060);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .stores-empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    /* ======================================================
+       NEW STORE POPUP
+       ======================================================
+       Slides up from the bottom when "+" is tapped.
+       Covers the bottom portion of the screen.
+       ====================================================== */
+
+    /* Dark overlay behind the popup */
+    .popup-overlay {
+      position: fixed;
+      inset: 0; /* shorthand for top/right/bottom/left: 0 */
+      background: rgba(61, 35, 20, 0.4);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    /* When popup is open, overlay becomes visible and clickable */
+    .popup-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* The popup card itself */
+    .new-store-popup {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 24px 24px 0 0;
+      padding: 24px 24px calc(24px + env(safe-area-inset-bottom));
+      z-index: 101;
+      transform: translateY(100%);
+      /* starts fully below the screen */
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Slides up when open */
+    .new-store-popup.open {
+      transform: translateY(0);
+    }
+
+    /* Drag handle at top of popup — visual cue it can be dismissed */
+    .popup-handle {
+      width: 36px;
+      height: 4px;
+      background: rgba(61, 35, 20, 0.15);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
+
+    /* Popup title */
+    .popup-title {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+      margin: 0 0 20px;
+    }
+
+    /* ── FORM INPUTS ─────────────────────────────────────────
+       Styled text inputs for the new store form.
+       All inputs share this base style.
+    ────────────────────────────────────────────────────────── */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-text-label, #8a7060);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid rgba(61, 35, 20, 0.12);
+      border-radius: 12px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 16px;
+      /* 16px prevents iOS auto-zoom on focus */
+      color: var(--color-bark-900);
+      background: var(--color-cream);
+      box-sizing: border-box;
+      transition: border-color 0.15s ease;
+      -webkit-appearance: none;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--color-sakura-400);
+    }
+
+    /* ── TOGGLE ROW ──────────────────────────────────────────
+       A row with a label on the left and a toggle switch
+       on the right. Used for the "Secret List" option.
+    ────────────────────────────────────────────────────────── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      margin-bottom: 16px;
+    }
+
+    .toggle-label-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .toggle-label {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-bark-900);
+    }
+
+    .toggle-sublabel {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 11px;
+      color: var(--color-text-label, #8a7060);
+    }
+
+    /* iOS-style toggle switch */
+    .toggle-switch {
+      width: 44px;
+      height: 26px;
+      background: #ddd;
+      border-radius: 13px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    /* The sliding circle inside the toggle */
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    /* When the toggle is ON — green background, circle slides right */
+    .toggle-switch.on {
+      background: var(--color-matcha-300, #86efac);
+    }
+
+    .toggle-switch.on::after {
+      transform: translateX(18px);
+    }
+
+    /* Create button — full width, sakura pink */
+    .create-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 14px;
+      background: var(--color-sakura-400);
+      color: white;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .create-btn:active {
+      transform: scale(0.98);
+      background: var(--color-yuzu-700);
+    }
+
+    /* ======================================================
+       ITEMS VIEW CONTENT
+       ====================================================== */
+
+    /* Store name shown in header when in items view */
+    .items-store-name {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+      margin: 0;
+    }
+
+    /* Scrollable area for items — leaves room for add bar */
+    .items-scroll {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 20px;
+    }
+
+    /* ── FILTER BAR ──────────────────────────────────────────
+       Row of filter toggle buttons above the item list.
+       Lets user filter to show only necessities.
+    ────────────────────────────────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px 0;
+      flex-shrink: 0;
+    }
+
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid rgba(61, 35, 20, 0.12);
+      background: white;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 12px;
+      color: var(--color-bark-900);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Active filter button */
+    .filter-btn.active {
+      background: var(--color-sakura-400);
+      border-color: var(--color-sakura-400);
+      color: white;
+    }
+
+    /* Checkout button in filter bar — right side */
+    .checkout-btn {
+      margin-left: auto;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: none;
+      background: var(--color-matcha-300, #86efac);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: #166534;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s ease;
+      display: none; /* shown only when items are in cart */
+    }
+
+    .checkout-btn.visible {
+      display: block;
+    }
+
+    .checkout-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* ── ITEM ROW ────────────────────────────────────────────
+       Each shopping item in the list.
+       Three states:
+         Default   → unchecked, full opacity
+         In-cart   → ticked, slightly faded with line-through
+         Necessity → has a star indicator on the left
+    ────────────────────────────────────────────────────────── */
+    .item-row {
+      background: white;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 1px 6px rgba(61, 35, 20, 0.05);
+      transition: opacity 0.2s ease, transform 0.15s ease;
+      animation: cardSlideIn 0.25s ease both;
+    }
+
+    /* In-cart state — faded and ticked */
+    .item-row.in-cart {
+      opacity: 0.5;
+    }
+
+    .item-row.in-cart .item-name {
+      text-decoration: line-through;
+    }
+
+    /* ── ITEM CHECKBOX ───────────────────────────────────────
+       The circle on the left of each item.
+       Tap to toggle in-cart state.
+    ────────────────────────────────────────────────────────── */
+    .item-check {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid rgba(61, 35, 20, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Checked state — fills with sakura pink */
+    .item-check.checked {
+      background: var(--color-sakura-400);
+      border-color: var(--color-sakura-400);
+      color: white;
+      font-size: 13px;
+    }
+
+    /* ── ITEM DETAILS ────────────────────────────────────────
+       The main content area of each item row.
+       Name on top, price/quantity below.
+    ────────────────────────────────────────────────────────── */
+    .item-details {
+      flex: 1;
+      min-width: 0; /* prevents overflow */
+    }
+
+    .item-name {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--color-bark-900);
+      margin: 0 0 3px;
+      /* Truncate very long names with ellipsis */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .item-meta {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 12px;
+      color: var(--color-text-label, #8a7060);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* Necessity star indicator */
+    .necessity-star {
+      color: var(--color-yuzu-700);
+      font-size: 11px;
+    }
+
+    /* Item price calculated from qty × unit price */
+    .item-price {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-bark-900);
+      flex-shrink: 0;
+    }
+
+    /* Delete button on far right of item */
+    .item-delete {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: rgba(61, 35, 20, 0.3);
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+
+    .item-delete:active {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* Empty state for item list */
+    .items-empty {
+      text-align: center;
+      padding: 40px 20px;
+      font-family: 'Noto Sans JP', sans-serif;
+      color: var(--color-text-label, #8a7060);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    /* ======================================================
+       ADD ITEM BAR — PERSISTENT BOTTOM INPUT
+       ======================================================
+       Always visible at the bottom of the items view.
+       Contains all item fields in a compact horizontal layout.
+       Sits above the bottom navigation bar.
+       ====================================================== */
+    .add-item-bar {
+      background: white;
+      border-top: 1px solid rgba(249, 168, 201, 0.2);
+      padding: 12px 16px;
+      flex-shrink: 0;
+    }
+
+    /* Row 1: Item name input (full width) */
+    .add-item-name-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    /* Row 2: Quantity, price, necessity, add button */
+    .add-item-details-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    /* Shared style for all add-bar inputs */
+    .add-input {
+      padding: 10px 12px;
+      border: 1.5px solid rgba(61, 35, 20, 0.12);
+      border-radius: 10px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 16px;
+      /* 16px prevents iOS auto-zoom */
+      color: var(--color-bark-900);
+      background: var(--color-cream);
+      -webkit-appearance: none;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .add-input:focus {
+      border-color: var(--color-sakura-400);
+    }
+
+    /* Name input takes all available width */
+    .add-input-name {
+      flex: 1;
+    }
+
+    /* Quantity — narrow fixed width */
+    .add-input-qty {
+      width: 56px;
+      text-align: center;
+    }
+
+    /* Price — medium fixed width */
+    .add-input-price {
+      width: 80px;
+    }
+
+    /* Necessity toggle button — star icon */
+    .necessity-toggle-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      border: 1.5px solid rgba(61, 35, 20, 0.12);
+      background: var(--color-cream);
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    /* When necessity is ON — highlights in yuzu orange */
+    .necessity-toggle-btn.on {
+      background: rgba(201, 122, 74, 0.15);
+      border-color: var(--color-yuzu-700);
+    }
+
+    /* Add button — sakura pink pill */
+    .add-item-btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 10px;
+      background: var(--color-sakura-400);
+      color: white;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s ease, background 0.15s ease;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .add-item-btn:active {
+      transform: scale(0.95);
+      background: var(--color-yuzu-700);
+    }
+
+    /* ── INPUT HINT LABELS ────────────────────────────────────
+       Tiny labels above the detail row inputs.
+    ────────────────────────────────────────────────────────── */
+    .add-item-hints {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 4px;
+      padding: 0 2px;
+    }
+
+    .add-hint {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 10px;
+      color: var(--color-text-label, #8a7060);
+      letter-spacing: 0.5px;
+    }
+
+    .add-hint-name { flex: 1; }
+    .add-hint-qty  { width: 56px; text-align: center; }
+    .add-hint-price { width: 80px; }
+    .add-hint-star  { width: 40px; text-align: center; }
+    .add-hint-add   { width: 60px; text-align: center; }
+
+    /* ======================================================
+       CONFIRM DIALOG — DELETE LIST PROMPT
+       ======================================================
+       Appears when all items are checked off.
+       Simple centered card over a dark overlay.
+       ====================================================== */
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(61, 35, 20, 0.5);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .confirm-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .confirm-card {
+      background: white;
+      border-radius: 20px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+      transform: scale(0.9);
+      transition: transform 0.2s ease;
+    }
+
+    .confirm-overlay.open .confirm-card {
+      transform: scale(1);
+    }
+
+    .confirm-emoji {
+      font-size: 40px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .confirm-title {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+      margin: 0 0 8px;
+    }
+
+    .confirm-text {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      color: var(--color-text-label, #8a7060);
+      margin: 0 0 24px;
+      line-height: 1.6;
+    }
+
+    .confirm-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .confirm-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s ease;
+    }
+
+    .confirm-btn:active { transform: scale(0.96); }
+
+    /* Keep list button — outlined style */
+    .confirm-btn-keep {
+      background: var(--color-cream);
+      color: var(--color-bark-900);
+      border: 1.5px solid rgba(61, 35, 20, 0.15);
+    }
+
+    /* Delete button — red */
+    .confirm-btn-delete {
+      background: #ef4444;
+      color: white;
+    }
+
+    /* ======================================================
+       ANIMATIONS
+       ====================================================== */
+
+    @keyframes cardSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-wrapper">
+
+    <!-- ─────────────────────────────────────────────────
+      SAFE AREA TOP
+      Pushes content below iPhone notch/Dynamic Island.
+    ───────────────────────────────────────────────────── -->
+    <div class="safe-area-top"></div>
+
+    <!-- ─────────────────────────────────────────────────
+      PAGE HEADER
+      Title and right-side action button.
+      The right button changes between "+" and "Back"
+      depending on which view is active.
+      JavaScript swaps the content of header-action-slot.
+    ───────────────────────────────────────────────────── -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <!-- id="header-title" — JS updates this text -->
+        <h1 class="page-title" id="header-title">Shopping</h1>
+        <span class="page-kana">買い物リスト</span>
+        <!-- 買い物リスト = kaimono risuto = shopping list -->
+      </div>
+
+      <!-- This slot holds either the + button or the back button -->
+      <div id="header-action-slot">
+        <!-- Default: Add new store button -->
+        <button class="header-add-btn" onclick="openNewStorePopup()" aria-label="Add new store">
+          +
+        </button>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────
+      VIEWS CONTAINER
+      Holds both views. CSS transitions handle sliding.
+    ───────────────────────────────────────────────────── -->
+    <div class="views-container" id="views-container">
+
+      <!-- ══════════════════════════════════════════════
+        VIEW 1 — STORES
+        Shows all store list cards.
+      ══════════════════════════════════════════════════ -->
+      <div class="view stores-view" id="stores-view">
+
+        <!-- Scrollable list of store cards -->
+        <div class="stores-scroll" id="stores-list">
+          <!-- Store cards injected here by JavaScript -->
+          <p class="stores-empty" id="stores-empty" style="display:none;">
+            <span class="stores-empty-icon">🛒</span>
+            No shopping lists yet.<br>
+            Tap <strong>+</strong> to create your first store list!
+          </p>
+        </div>
+
+      </div>
+      <!-- end stores-view -->
+
+      <!-- ══════════════════════════════════════════════
+        VIEW 2 — ITEMS
+        Shows items for the selected store.
+        The add-item bar is pinned at the bottom.
+      ══════════════════════════════════════════════════ -->
+      <div class="view items-view" id="items-view">
+
+        <!-- Filter buttons and checkout -->
+        <div class="filter-bar">
+          <button class="filter-btn active" id="filter-all" onclick="setFilter('all')">
+            All
+          </button>
+          <button class="filter-btn" id="filter-necessity" onclick="setFilter('necessity')">
+            ⭐ Necessities
+          </button>
+          <!-- Checkout button — only shown when items are in cart -->
+          <button class="checkout-btn" id="checkout-btn" onclick="checkout()">
+            ✓ Checkout
+          </button>
+        </div>
+
+        <!-- Scrollable item list -->
+        <div class="items-scroll" id="items-list">
+          <!-- Item rows injected here by JavaScript -->
+          <p class="items-empty" id="items-empty" style="display:none;">
+            No items yet.<br>Add your first item below!
+          </p>
+        </div>
+
+        <!-- ── PERSISTENT ADD ITEM BAR ──────────────────
+          Always visible at bottom of items view.
+          Row 1: Item name (full width)
+          Row 2: Qty | Price | ⭐ necessity | Add button
+        ─────────────────────────────────────────────────── -->
+        <div class="add-item-bar">
+
+          <!-- Tiny hint labels above inputs -->
+          <div class="add-item-hints">
+            <span class="add-hint add-hint-name">Item name</span>
+            <span class="add-hint add-hint-qty">Qty</span>
+            <span class="add-hint add-hint-price">Price $</span>
+            <span class="add-hint add-hint-star">Must</span>
+            <span class="add-hint add-hint-add"></span>
+          </div>
+
+          <!-- Row 1: Name input -->
+          <div class="add-item-name-row">
+            <input
+              class="add-input add-input-name"
+              id="input-item-name"
+              type="text"
+              placeholder="e.g. Milk, Bread..."
+              autocomplete="off"
+              autocorrect="off"
+            />
+          </div>
+
+          <!-- Row 2: Qty + Price + Necessity + Add -->
+          <div class="add-item-details-row">
+
+            <!-- Quantity — number input, default 1 -->
+            <input
+              class="add-input add-input-qty"
+              id="input-item-qty"
+              type="number"
+              min="1"
+              value="1"
+              placeholder="1"
+            />
+
+            <!-- Price per unit — optional -->
+            <input
+              class="add-input add-input-price"
+              id="input-item-price"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+            />
+
+            <!-- Necessity toggle — star button
+                 Tapping toggles the isNecessity state
+                 and highlights the button -->
+            <button
+              class="necessity-toggle-btn"
+              id="necessity-toggle"
+              onclick="toggleNecessity()"
+              title="Mark as necessity"
+            >
+              ⭐
+            </button>
+
+            <!-- Add item button -->
+            <button class="add-item-btn" onclick="addItem()">
+              Add
+            </button>
+
+          </div>
+        </div>
+        <!-- end add-item-bar -->
+
+      </div>
+      <!-- end items-view -->
+
+    </div>
+    <!-- end views-container -->
+
+    <!-- ─────────────────────────────────────────────────
+      BOTTOM NAVIGATION BAR
+      Same nav as index.html — Shopping tab is active here.
+    ───────────────────────────────────────────────────── -->
+    <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+      <a class="nav-item" href="../index.html">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </a>
+      <a class="nav-item" href="calendar.html">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Calendar</span>
+      </a>
+      <a class="nav-item active" href="shopping.html" aria-current="page">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-label">Shopping</span>
+      </a>
+      <a class="nav-item" href="budget.html">
+        <span class="nav-icon">💴</span>
+        <span class="nav-label">Budget</span>
+      </a>
+      <a class="nav-item" href="settings.html">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Settings</span>
+      </a>
+    </nav>
+
+    <div class="safe-area-bottom"></div>
+
+  </div>
+  <!-- end app-wrapper -->
+
+  <!-- ─────────────────────────────────────────────────
+    NEW STORE POPUP
+    Lives outside the app-wrapper so it overlays
+    everything including the nav bar.
+  ───────────────────────────────────────────────────── -->
+
+  <!-- Dark overlay — tap to close popup -->
+  <div class="popup-overlay" id="popup-overlay" onclick="closeNewStorePopup()"></div>
+
+  <!-- Popup card -->
+  <div class="new-store-popup" id="new-store-popup">
+    <div class="popup-handle"></div>
+    <h2 class="popup-title">New Shopping List</h2>
+
+    <!-- Store name input -->
+    <div class="form-group">
+      <label class="form-label" for="input-store-name">Store Name</label>
+      <input
+        class="form-input"
+        id="input-store-name"
+        type="text"
+        placeholder="e.g. Meijer, Target, Lowes..."
+        autocomplete="off"
+      />
+    </div>
+
+    <!-- Secret list toggle -->
+    <div class="toggle-row">
+      <div class="toggle-label-group">
+        <span class="toggle-label">🤫 Secret List</span>
+        <span class="toggle-sublabel">Only visible to you</span>
+      </div>
+      <div
+        class="toggle-switch"
+        id="secret-toggle"
+        onclick="toggleSecret()"
+        role="switch"
+        aria-checked="false"
+      ></div>
+    </div>
+
+    <!-- Create button -->
+    <button class="create-btn" onclick="createStore()">
+      Create List
+    </button>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────
+    DELETE LIST CONFIRM DIALOG
+    Appears when all items in a list are checked off.
+  ───────────────────────────────────────────────────── -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-card">
+      <span class="confirm-emoji">🎉</span>
+      <h3 class="confirm-title">List Complete!</h3>
+      <p class="confirm-text">
+        Everything has been checked off.<br>
+        Would you like to remove this list?
+      </p>
+      <div class="confirm-buttons">
+        <button class="confirm-btn confirm-btn-keep" onclick="closeConfirm()">
+          Keep It
+        </button>
+        <button class="confirm-btn confirm-btn-delete" onclick="deleteCurrentStore()">
+          Remove List
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────
+    SHOPPING PAGE SCRIPT
+  ───────────────────────────────────────────────────── -->
+  <script type="module">
+    import { supabase } from '../supabase.js';
+    import { currentUser } from '../auth.js';
+
+    /* ======================================================
+       STATE
+       ======================================================
+       These variables track the current state of the page.
+       All functions read from and write to these variables.
+       ====================================================== */
+
+    let stores        = [];       /* array of store objects from Supabase */
+    let currentStore  = null;     /* the store currently open in items view */
+    let items         = [];       /* items for the current store */
+    let isSecretOn    = false;    /* new store popup secret toggle state */
+    let isNecessity   = false;    /* add item bar necessity toggle state */
+    let currentFilter = 'all';    /* 'all' or 'necessity' */
+
+    /* ======================================================
+       INITIALISE
+       ======================================================
+       Runs when the page first loads.
+       Checks if a ?store=ID param exists in the URL —
+       if so, opens that store's items directly.
+       Otherwise loads the stores list view.
+       ====================================================== */
+    async function init() {
+      await loadStores();
+
+      /* Check URL for ?store=ID parameter
+         URLSearchParams parses the query string from the URL
+         e.g. shopping.html?store=3 → params.get('store') = '3' */
+      const params  = new URLSearchParams(window.location.search);
+      const storeId = params.get('store');
+
+      if (storeId) {
+        /* Find the store with this ID and open its items view */
+        const store = stores.find(s => s.id === parseInt(storeId));
+        if (store) {
+          openStore(store);
+        }
+      }
+    }
+
+    /* ======================================================
+       LOAD STORES
+       ======================================================
+       Fetches all shopping_stores from Supabase.
+       Filters out secret stores that belong to the other user.
+       Renders a card for each visible store.
+       ====================================================== */
+    async function loadStores() {
+      const { data, error } = await supabase
+        .from('shopping_stores')
+        .select('*')
+        .order('created_at', { ascending: false });
+        /* newest lists appear first */
+
+      if (error) {
+        console.error('Error loading stores:', error.message);
+        return;
+      }
+
+      /* Filter out secret lists that aren't ours
+         A secret list is visible if:
+           secret = false → not secret, everyone sees it
+           created_by = currentUser.name → it's our own secret list */
+      stores = (data || []).filter(store =>
+        !store.secret || store.created_by === currentUser.name
+      );
+
+      renderStores();
+    }
+
+    /* ======================================================
+       RENDER STORES
+       ======================================================
+       Builds the store card HTML and injects it into the DOM.
+       Fetches item counts for each store to display on cards.
+       ====================================================== */
+    async function renderStores() {
+      const listEl  = document.getElementById('stores-list');
+      const emptyEl = document.getElementById('stores-empty');
+
+      if (stores.length === 0) {
+        emptyEl.style.display = 'block';
+        return;
+      }
+
+      emptyEl.style.display = 'none';
+
+      /* Fetch item counts for all stores in one query
+         .in() filters to rows where store_id is any of our store IDs */
+      const storeIds = stores.map(s => s.id);
+      const { data: itemCounts } = await supabase
+        .from('shopping_items')
+        .select('store_id, checked_off')
+        .in('store_id', storeIds);
+
+      /* Build a map of storeId → { total, remaining } counts
+         This lets us quickly look up counts when building card HTML */
+      const countMap = {};
+      (itemCounts || []).forEach(item => {
+        if (!countMap[item.store_id]) {
+          countMap[item.store_id] = { total: 0, remaining: 0 };
+        }
+        countMap[item.store_id].total++;
+        if (!item.checked_off) countMap[item.store_id].remaining++;
+      });
+
+      /* Build HTML for all store cards */
+      const html = stores.map((store, index) => {
+        const counts    = countMap[store.id] || { total: 0, remaining: 0 };
+        const countText = counts.total === 0
+          ? 'Empty list'
+          : `${counts.remaining} of ${counts.total} items remaining`;
+
+        /* Animation delay staggers cards in one by one */
+        const delay = index * 0.05;
+
+        return `
+          <div
+            class="store-card"
+            style="animation-delay: ${delay}s"
+            onclick="openStore(${JSON.stringify(store).replace(/"/g, '&quot;')})"
+          >
+            <div class="store-card-left">
+              <span class="store-card-name">${store.name}</span>
+              <span class="store-card-count">${countText}</span>
+            </div>
+            <div class="store-card-right">
+              ${store.secret ? '<span class="secret-badge">🤫 Secret</span>' : ''}
+              <span class="store-card-arrow">›</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      /* Replace list contents — keep the empty message element */
+      listEl.innerHTML = html + emptyEl.outerHTML;
+    }
+
+    /* ======================================================
+       OPEN STORE — ANIMATE TO ITEMS VIEW
+       ======================================================
+       Called when a store card is tapped.
+       Saves the store, loads its items, then slides the view.
+       ====================================================== */
+    async function openStore(store) {
+      currentStore = store;
+
+      /* Update header title to show store name */
+      document.getElementById('header-title').textContent = store.name;
+
+      /* Swap header action button from "+" to "Back" */
+      document.getElementById('header-action-slot').innerHTML = `
+        <button class="header-back-btn" onclick="closeStore()">
+          ← Back
+        </button>
+      `;
+
+      /* Load this store's items */
+      await loadItems();
+
+      /* Trigger the CSS slide animation by adding the class */
+      document.getElementById('views-container').classList.add('show-items');
+    }
+
+    /* ======================================================
+       CLOSE STORE — ANIMATE BACK TO STORES VIEW
+       ======================================================
+       Slides back to stores view and resets header.
+       ====================================================== */
+    async function closeStore() {
+      /* Remove slide class — CSS transitions back */
+      document.getElementById('views-container').classList.remove('show-items');
+
+      /* Reset header */
+      document.getElementById('header-title').textContent = 'Shopping';
+      document.getElementById('header-action-slot').innerHTML = `
+        <button class="header-add-btn" onclick="openNewStorePopup()">+</button>
+      `;
+
+      currentStore = null;
+      items = [];
+
+      /* Refresh store cards to show updated counts */
+      await renderStores();
+    }
+
+    /* ======================================================
+       LOAD ITEMS
+       ======================================================
+       Fetches all items for the current store.
+       Applies the current filter (all vs necessity only).
+       ====================================================== */
+    async function loadItems() {
+      if (!currentStore) return;
+
+      let query = supabase
+        .from('shopping_items')
+        .select('*')
+        .eq('store_id', currentStore.id)
+        .order('created_at', { ascending: true });
+        /* oldest items at top — order added */
+
+      /* Apply necessity filter if active */
+      if (currentFilter === 'necessity') {
+        query = query.eq('necessity', true);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error loading items:', error.message);
+        return;
+      }
+
+      items = data || [];
+      renderItems();
+    }
+
+    /* ======================================================
+       RENDER ITEMS
+       ======================================================
+       Builds item row HTML and injects into the items list.
+       Also manages checkout button visibility.
+       ====================================================== */
+    function renderItems() {
+      const listEl  = document.getElementById('items-list');
+      const emptyEl = document.getElementById('items-empty');
+
+      if (items.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl.style.display = 'block';
+        document.getElementById('checkout-btn').classList.remove('visible');
+        return;
+      }
+
+      emptyEl.style.display = 'none';
+
+      /* Check if any items are in cart → show checkout button */
+      const inCartCount = items.filter(i => i.in_cart).length;
+      const checkoutBtn = document.getElementById('checkout-btn');
+      if (inCartCount > 0) {
+        checkoutBtn.classList.add('visible');
+        checkoutBtn.textContent = `✓ Checkout (${inCartCount})`;
+      } else {
+        checkoutBtn.classList.remove('visible');
+      }
+
+      /* Build item row HTML */
+      const html = items.map((item, index) => {
+        /* Calculate total price: unit price × quantity
+           toFixed(2) formats to 2 decimal places e.g. "3.98"
+           If no price set, show nothing */
+        const totalPrice = item.price
+          ? `$${(item.price * item.quantity).toFixed(2)}`
+          : '';
+
+        /* Delay stagger for animation */
+        const delay = index * 0.04;
+
+        return `
+          <div
+            class="item-row ${item.in_cart ? 'in-cart' : ''}"
+            style="animation-delay: ${delay}s"
+            id="item-row-${item.id}"
+          >
+            <!-- Tap circle to toggle in-cart -->
+            <div
+              class="item-check ${item.in_cart ? 'checked' : ''}"
+              onclick="toggleInCart(${item.id})"
+            >
+              ${item.in_cart ? '✓' : ''}
+            </div>
+
+            <!-- Item name and meta info -->
+            <div class="item-details">
+              <p class="item-name">${item.name}</p>
+              <div class="item-meta">
+                <span>Qty: ${item.quantity}</span>
+                ${item.necessity ? '<span class="necessity-star">⭐ Must-have</span>' : ''}
+              </div>
+            </div>
+
+            <!-- Total price -->
+            ${totalPrice ? `<span class="item-price">${totalPrice}</span>` : ''}
+
+            <!-- Delete button -->
+            <button class="item-delete" onclick="deleteItem(${item.id})">
+              ✕
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      listEl.innerHTML = html;
+    }
+
+    /* ======================================================
+       TOGGLE IN-CART
+       ======================================================
+       Flips the in_cart boolean for a single item.
+       After updating, checks if ALL items are now in-cart
+       which triggers the "list complete" prompt.
+       ====================================================== */
+    async function toggleInCart(itemId) {
+      /* Find the item in our local state */
+      const item = items.find(i => i.id === itemId);
+      if (!item) return;
+
+      /* Flip the in_cart value */
+      const newValue = !item.in_cart;
+
+      /* Update in Supabase */
+      const { error } = await supabase
+        .from('shopping_items')
+        .update({ in_cart: newValue, checked_off: newValue })
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Error updating item:', error.message);
+        return;
+      }
+
+      /* Update local state — avoids a full refetch for speed */
+      item.in_cart    = newValue;
+      item.checked_off = newValue;
+
+      /* Re-render to reflect the change */
+      renderItems();
+
+      /* Check if all items are now checked off */
+      const allDone = items.length > 0 && items.every(i => i.in_cart);
+      if (allDone) {
+        /* Small delay so user sees the last item tick before prompt */
+        setTimeout(() => openConfirm(), 500);
+      }
+    }
+
+    /* ======================================================
+       CHECKOUT
+       ======================================================
+       Removes all items currently marked in_cart from the
+       database. Leaves any unchecked items on the list.
+       ====================================================== */
+    async function checkout() {
+      if (!currentStore) return;
+
+      /* Delete all in-cart items for this store */
+      const { error } = await supabase
+        .from('shopping_items')
+        .delete()
+        .eq('store_id', currentStore.id)
+        .eq('in_cart', true);
+
+      if (error) {
+        console.error('Checkout error:', error.message);
+        return;
+      }
+
+      /* Reload items — in-cart ones are now gone */
+      await loadItems();
+    }
+
+    /* ======================================================
+       ADD ITEM
+       ======================================================
+       Reads all fields from the persistent add-item bar,
+       validates that a name was entered, then inserts a new
+       row into shopping_items and refreshes the list.
+       ====================================================== */
+    async function addItem() {
+      const nameEl  = document.getElementById('input-item-name');
+      const qtyEl   = document.getElementById('input-item-qty');
+      const priceEl = document.getElementById('input-item-price');
+
+      const name  = nameEl.value.trim();
+      const qty   = parseInt(qtyEl.value) || 1;
+      const price = parseFloat(priceEl.value) || null;
+
+      /* Name is required — highlight border if missing */
+      if (!name) {
+        nameEl.style.borderColor = '#ef4444';
+        setTimeout(() => nameEl.style.borderColor = '', 1000);
+        return;
+      }
+
+      /* Insert new item into Supabase */
+      const { error } = await supabase
+        .from('shopping_items')
+        .insert({
+          store_id:  currentStore.id,
+          name:      name,
+          quantity:  qty,
+          price:     price,
+          necessity: isNecessity,
+          in_cart:   false,
+          checked_off: false,
+          added_by:  currentUser.name
+        });
+
+      if (error) {
+        console.error('Error adding item:', error.message);
+        return;
+      }
+
+      /* Clear the input fields for next item */
+      nameEl.value  = '';
+      qtyEl.value   = '1';
+      priceEl.value = '';
+
+      /* Reset necessity toggle */
+      isNecessity = false;
+      document.getElementById('necessity-toggle').classList.remove('on');
+
+      /* Refocus name field so user can immediately type next item */
+      nameEl.focus();
+
+      /* Reload items to show the new addition */
+      await loadItems();
+    }
+
+    /* ======================================================
+       DELETE ITEM
+       ======================================================
+       Removes a single item from Supabase by its ID.
+       ====================================================== */
+    async function deleteItem(itemId) {
+      const { error } = await supabase
+        .from('shopping_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Error deleting item:', error.message);
+        return;
+      }
+
+      await loadItems();
+    }
+
+    /* ======================================================
+       SET FILTER
+       ======================================================
+       Switches between showing all items or necessity-only.
+       Updates the active state on filter buttons and reloads.
+       ====================================================== */
+    async function setFilter(filter) {
+      currentFilter = filter;
+
+      /* Update active class on filter buttons */
+      document.getElementById('filter-all').classList.toggle('active', filter === 'all');
+      document.getElementById('filter-necessity').classList.toggle('active', filter === 'necessity');
+
+      await loadItems();
+    }
+
+    /* ======================================================
+       NEW STORE POPUP — OPEN / CLOSE / CREATE
+       ====================================================== */
+
+    function openNewStorePopup() {
+      document.getElementById('popup-overlay').classList.add('open');
+      document.getElementById('new-store-popup').classList.add('open');
+      /* Focus the name input so keyboard appears immediately */
+      setTimeout(() => document.getElementById('input-store-name').focus(), 350);
+    }
+
+    function closeNewStorePopup() {
+      document.getElementById('popup-overlay').classList.remove('open');
+      document.getElementById('new-store-popup').classList.remove('open');
+      /* Reset form state */
+      document.getElementById('input-store-name').value = '';
+      isSecretOn = false;
+      document.getElementById('secret-toggle').classList.remove('on');
+    }
+
+    /* Called when "Create List" button is tapped in the popup */
+    async function createStore() {
+      const nameEl = document.getElementById('input-store-name');
+      const name   = nameEl.value.trim();
+
+      if (!name) {
+        nameEl.style.borderColor = '#ef4444';
+        setTimeout(() => nameEl.style.borderColor = '', 1000);
+        return;
+      }
+
+      /* Insert new store into Supabase */
+      const { data, error } = await supabase
+        .from('shopping_stores')
+        .insert({
+          name:       name,
+          secret:     isSecretOn,
+          created_by: currentUser.name
+        })
+        .select()
+        .single();
+        /* .select().single() returns the created row so we can open it */
+
+      if (error) {
+        console.error('Error creating store:', error.message);
+        return;
+      }
+
+      closeNewStorePopup();
+
+      /* Add new store to local array and re-render */
+      stores.unshift(data); /* unshift adds to front of array */
+      await renderStores();
+
+      /* Automatically open the new store's items view */
+      openStore(data);
+    }
+
+    /* ======================================================
+       TOGGLE FUNCTIONS
+       ====================================================== */
+
+    /* Secret toggle in new store popup */
+    function toggleSecret() {
+      isSecretOn = !isSecretOn;
+      document.getElementById('secret-toggle').classList.toggle('on', isSecretOn);
+      document.getElementById('secret-toggle').setAttribute('aria-checked', isSecretOn);
+    }
+
+    /* Necessity toggle in add item bar */
+    function toggleNecessity() {
+      isNecessity = !isNecessity;
+      document.getElementById('necessity-toggle').classList.toggle('on', isNecessity);
+    }
+
+    /* ======================================================
+       CONFIRM DIALOG — LIST COMPLETE
+       ====================================================== */
+
+    function openConfirm() {
+      document.getElementById('confirm-overlay').classList.add('open');
+    }
+
+    function closeConfirm() {
+      document.getElementById('confirm-overlay').classList.remove('open');
+    }
+
+    /* Delete the entire current store and all its items */
+    async function deleteCurrentStore() {
+      if (!currentStore) return;
+
+      /* Delete the store row — cascade deletes all items too
+         because we set up ON DELETE CASCADE on the foreign key */
+      const { error } = await supabase
+        .from('shopping_stores')
+        .delete()
+        .eq('id', currentStore.id);
+
+      if (error) {
+        console.error('Error deleting store:', error.message);
+        return;
+      }
+
+      closeConfirm();
+      /* Navigate back to stores view */
+      await closeStore();
+    }
+
+    /* ======================================================
+       ASSIGN ALL FUNCTIONS TO WINDOW
+       ======================================================
+       ES Modules scope functions to the module so onclick=
+       attributes in HTML can't find them unless we attach
+       them to the global window object explicitly.
+       ====================================================== */
+    window.openNewStorePopup  = openNewStorePopup;
+    window.closeNewStorePopup = closeNewStorePopup;
+    window.createStore        = createStore;
+    window.openStore          = openStore;
+    window.closeStore         = closeStore;
+    window.toggleSecret       = toggleSecret;
+    window.toggleNecessity    = toggleNecessity;
+    window.addItem            = addItem;
+    window.deleteItem         = deleteItem;
+    window.toggleInCart       = toggleInCart;
+    window.checkout           = checkout;
+    window.setFilter          = setFilter;
+    window.openConfirm        = openConfirm;
+    window.closeConfirm       = closeConfirm;
+    window.deleteCurrentStore = deleteCurrentStore;
+
+    /* ── START THE PAGE ──────────────────────────────────── */
+    init();
+
+  </script>
+</body>
+</html>

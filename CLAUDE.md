@@ -170,3 +170,22 @@ a calendar, shopping list, and budget tracker.
 - config.js now on GitHub
 - pages/login.html built
 - Next: build pages/calendar.html
+
+## TO DO
+Security
+  → Update RLS policies to require login
+  → Harden Supabase so data needs real auth
+
+Pages to build
+  → pages/calendar.html
+  → pages/shopping.html
+  → pages/budget.html
+  → pages/settings.html  ← logout button lives here
+
+Polish
+  → Apple splash screen (no more black screen)
+  → App icons in icons/ folder
+  → Bottom nav active state on each page
+
+Other widget ideas
+  → You never got to tell me these!
