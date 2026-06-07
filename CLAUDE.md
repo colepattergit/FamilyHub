@@ -162,4 +162,11 @@ a calendar, shopping list, and budget tracker.
 
 ## Notes
 - Wife's name is [Maggie] — use her name in the greeting widget
-- We decided to add a meal planner section in the future
+- We decided to add a meal planner section in the future 
+- Supabase connected and working
+- All 7 tables built
+- PIN login system live
+- auth.js session guard on all pages
+- config.js now on GitHub
+- pages/login.html built
+- Next: build pages/calendar.html
