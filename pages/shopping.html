@@ -299,6 +299,31 @@
       opacity: 0.6;
     }
 
+    /* ── STORE DELETE BUTTON ─────────────────────────────────────
+   Trash icon on each store card. Sits in the right side
+   of the card separately from the tap-to-open area.
+   Small and unobtrusive — red on tap to confirm intent.
+────────────────────────────────────────────────────────────── */
+.store-delete-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.store-delete-btn:active {
+  background: rgba(239, 68, 68, 0.12);
+}
+
     /* Empty state when no stores exist yet */
     .stores-empty {
       text-align: center;
@@ -1347,21 +1372,28 @@
         const delay = index * 0.05;
 
         return `
-          <div
-            class="store-card"
-            style="animation-delay: ${delay}s"
-            onclick="openStore(${JSON.stringify(store).replace(/"/g, '&quot;')})"
-          >
-            <div class="store-card-left">
-              <span class="store-card-name">${store.name}</span>
-              <span class="store-card-count">${countText}</span>
-            </div>
-            <div class="store-card-right">
-              ${store.secret ? '<span class="secret-badge">🤫 Secret</span>' : ''}
-              <span class="store-card-arrow">›</span>
-            </div>
-          </div>
-        `;
+  <div
+    class="store-card"
+    style="animation-delay: ${delay}s"
+  >
+    <!-- Left side is tappable to open the store -->
+    <div class="store-card-left" onclick="openStore(${JSON.stringify(store).replace(/"/g, '&quot;')})">
+      <span class="store-card-name">${store.name}</span>
+      <span class="store-card-count">${countText}</span>
+    </div>
+    <div class="store-card-right">
+      ${store.secret ? '<span class="secret-badge">🤫 Secret</span>' : ''}
+      <!-- Delete button — separate from the open tap area -->
+      <button
+        class="store-delete-btn"
+        onclick="promptDeleteStore(${store.id}, ${counts.remaining})"
+      >
+        🗑
+      </button>
+      <span class="store-card-arrow" onclick="openStore(${JSON.stringify(store).replace(/"/g, '&quot;')})">›</span>
+    </div>
+  </div>
+`;
       }).join('');
 
       /* Replace list contents — keep the empty message element */
@@ -1754,6 +1786,39 @@
       document.getElementById('confirm-overlay').classList.remove('open');
     }
 
+/* ======================================================
+   PROMPT DELETE STORE
+   ======================================================
+   Called when the trash icon on a store card is tapped.
+   storeId      → the id of the store to potentially delete
+   remainingCount → how many unchecked items are in the list
+
+   If remainingCount is 0 → delete immediately, no warning
+   If remainingCount > 0  → show warning dialog first
+   ====================================================== */
+async function promptDeleteStore(storeId, remainingCount) {
+  /* Find the store object from our local stores array */
+  const store = stores.find(s => s.id === storeId);
+  if (!store) return;
+
+  /* Set this as the current store so deleteCurrentStore
+     knows which one to delete when confirmed */
+  currentStore = store;
+
+  if (remainingCount === 0) {
+    /* List is empty or fully checked — delete without prompt */
+    await deleteCurrentStore();
+  } else {
+    /* List has unpurchased items — show warning */
+    /* Update the confirm dialog text to show the warning */
+    document.querySelector('.confirm-emoji').textContent  = '⚠️';
+    document.querySelector('.confirm-title').textContent  = 'Items Remaining!';
+    document.querySelector('.confirm-text').textContent   =
+      `This list still has ${remainingCount} unpurchased item${remainingCount !== 1 ? 's' : ''}. Are you sure you want to remove it?`;
+    openConfirm();
+  }
+}
+
     /* Delete the entire current store and all its items */
     async function deleteCurrentStore() {
       if (!currentStore) return;
@@ -1797,7 +1862,8 @@
     window.openConfirm        = openConfirm;
     window.closeConfirm       = closeConfirm;
     window.deleteCurrentStore = deleteCurrentStore;
-
+    window.promptDeleteStore  = promptDeleteStore;
+    
     /* ── START THE PAGE ──────────────────────────────────── */
     init();
 
