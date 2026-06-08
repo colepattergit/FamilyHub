@@ -186,8 +186,6 @@ body {
   height: 100%;
   overflow: hidden; /* body doesn't scroll — sections scroll independently */
 
-    background-color: var(--color-bg-page);
-
   /* Subtle repeating dot pattern — creates a very faint
      texture in the background without needing an image file.
      radial-gradient draws a tiny circle, background-size
@@ -237,6 +235,7 @@ img {
   z-index: 1;
 
   background-color: transparent;
+  background-image: none;
 
 }
 
@@ -336,6 +335,8 @@ img {
   -webkit-overflow-scrolling: touch;   /* smooth momentum scroll on iPhone */
 
   padding: var(--space-md) var(--space-md) var(--space-xl);
+  background: transparent;
+
 }
 
 /* ── GREETING BANNER ──────────────────────────────────────── */
