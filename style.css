@@ -185,6 +185,17 @@ body {
 
   height: 100%;
   overflow: hidden; /* body doesn't scroll — sections scroll independently */
+
+    background-color: var(--color-bg-page);
+
+  /* Subtle repeating dot pattern — creates a very faint
+     texture in the background without needing an image file.
+     radial-gradient draws a tiny circle, background-size
+     tiles it every 40px across the whole background. */
+  background-image:
+    radial-gradient(circle at 20px 20px, rgba(200, 169, 138, 0.06) 2px, transparent 2px);
+  background-size: 40px 40px;
+
 }
 
 /* Remove default link underlines and color */
@@ -224,15 +235,9 @@ img {
 
   position: relative;
   z-index: 1;
-  background-color: var(--color-bg-page);
 
-  /* Subtle repeating dot pattern — creates a very faint
-     texture in the background without needing an image file.
-     radial-gradient draws a tiny circle, background-size
-     tiles it every 40px across the whole background. */
-  background-image:
-    radial-gradient(circle at 20px 20px, rgba(200, 169, 138, 0.06) 2px, transparent 2px);
-  background-size: 40px 40px;
+  background-color: transparent;
+
 }
 
 /* ── SAFE AREA SPACERS ──────────────────────────────────────
