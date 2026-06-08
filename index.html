@@ -389,14 +389,21 @@
   </div>
   <!-- end .app-wrapper -->
 
-  <!-- ─────────────────────────────────────────────────────
+<!-- ─────────────────────────────────────────────────────
     SCRIPTS — LOADED AT BOTTOM OF BODY
     Placed here so all HTML above is parsed before JS runs.
     type="module" enables import/export between files.
-  ───────────────────────────────────────────────────────── -->
-  <script type="module" src="supabase.js"></script>
-  <script type="module" src="app.js"></script>
-  <script type="module" src="app.js"></script>
 
+    ORDER MATTERS:
+    theme.js  → applies saved theme before anything renders
+    supabase.js → establishes database connection
+    auth.js   → checks login session, redirects if needed
+    app.js    → runs the dashboard logic
+  ───────────────────────────────────────────────────────── -->
+  <script type="module" src="theme.js"></script>
+  <script type="module" src="supabase.js"></script>
+  <script type="module" src="auth.js"></script>
+  <script type="module" src="app.js"></script>
+  
 </body>
 </html>

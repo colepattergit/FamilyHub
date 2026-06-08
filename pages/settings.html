@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  settings.html — Family Hub · Settings
+  ============================================================
+  The settings page has four sections:
+
+  1. PROFILE
+     Shows the logged-in user's name and lets them pick
+     an accent color from a 16-color Japanese nature palette.
+     Color saves to localStorage and applies app-wide.
+
+  2. THEME
+     Six theme cards — each with a color swatch, name, and
+     unique falling animation. Selecting a theme swaps all
+     CSS custom properties instantly and saves to localStorage.
+     Each user can have their own independent theme.
+
+  3. CHANGE PIN
+     Enter current PIN → new PIN → confirm new PIN.
+     Updates only the logged-in user's PIN in Supabase.
+
+  4. APP INFO
+     Version number and credits.
+  ============================================================
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>設定 — Settings</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../style.css" />
+
+  <style>
+    /* ======================================================
+       PAGE LAYOUT
+       ====================================================== */
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      left: 0;
+    }
+
+    .app-wrapper {
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+      background: transparent;
+    }
+
+    /* ── PAGE HEADER ───────────────────────────────────────
+       Simple header with page title and Japanese kana.
+    ────────────────────────────────────────────────────────── */
+    .page-header {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px 12px;
+      padding-top: calc(16px + env(safe-area-inset-top));
+      background: var(--color-cream);
+      border-bottom: 1px solid rgba(249, 168, 201, 0.2);
+      flex-shrink: 0;
+    }
+
+    .page-title {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+      margin: 0 0 2px;
+      line-height: 1.2;
+    }
+
+    .page-kana {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 11px;
+      color: var(--color-sakura-400);
+      letter-spacing: 2px;
+      display: block;
+    }
+
+    /* ── SCROLLABLE CONTENT ────────────────────────────────
+       The main area scrolls to show all settings sections.
+    ────────────────────────────────────────────────────────── */
+    .settings-scroll {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px 20px;
+      padding-bottom: 40px;
+      background: transparent;
+    }
+
+    /* ======================================================
+       SETTINGS SECTIONS
+       ======================================================
+       Each section has a label, a card container, and
+       its own content inside. Sections are spaced apart
+       with margin-bottom.
+       ====================================================== */
+
+    /* Section wrapper */
+    .settings-section {
+      margin-bottom: 28px;
+    }
+
+    /* Section label above the card */
+    .section-label {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-text-label, #8a7060);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin: 0 0 10px 4px;
+    }
+
+    /* White card that wraps each section's content */
+    .settings-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow:
+        0 2px 12px rgba(61, 35, 20, 0.06),
+        0 1px 3px rgba(61, 35, 20, 0.04);
+    }
+
+    /* ── SETTINGS ROW ──────────────────────────────────────
+       A single row inside a settings card.
+       Used for items that have a label on the left and
+       a value or control on the right.
+       border-top on all but first row creates dividers.
+    ────────────────────────────────────────────────────────── */
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-top: 1px solid rgba(61, 35, 20, 0.06);
+    }
+
+    .settings-row:first-child {
+      border-top: none;
+    }
+
+    .settings-row-label {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      color: var(--color-bark-900);
+    }
+
+    .settings-row-value {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      color: var(--color-text-label, #8a7060);
+    }
+
+    /* ======================================================
+       SECTION 1 — PROFILE
+       ====================================================== */
+
+    /* User avatar shown at top of profile section */
+    .profile-avatar-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 20px 16px;
+    }
+
+    /* Large avatar circle with user's initial */
+    .profile-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Kaisei Decol', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+      /* background color set dynamically via JS */
+    }
+
+    .profile-name {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+      margin: 0 0 2px;
+    }
+
+    .profile-role {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 12px;
+      color: var(--color-text-label, #8a7060);
+      margin: 0;
+    }
+
+    /* ── COLOR PALETTE ─────────────────────────────────────
+       16 color swatches in a 8x2 grid inside the profile card.
+       Tapping a swatch updates the user's accent color.
+    ────────────────────────────────────────────────────────── */
+    .color-palette-section {
+      padding: 12px 16px 20px;
+      border-top: 1px solid rgba(61, 35, 20, 0.06);
+    }
+
+    .color-palette-label {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 11px;
+      color: var(--color-text-label, #8a7060);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin: 0 0 12px;
+      display: block;
+    }
+
+    /* Grid of color swatches */
+    .color-palette {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+    }
+
+    /* Individual color swatch */
+    .color-swatch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* The colored circle */
+    .swatch-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    /* Selected swatch gets a white ring border */
+    .color-swatch.selected .swatch-circle {
+      border-color: var(--color-bark-900);
+      transform: scale(1.15);
+    }
+
+    .color-swatch:active .swatch-circle {
+      transform: scale(0.9);
+    }
+
+    /* Japanese name below each swatch */
+    .swatch-name {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 8px;
+      color: var(--color-text-label, #8a7060);
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    /* ======================================================
+       SECTION 2 — THEMES
+       ======================================================
+       Six theme cards in a 2-column grid.
+       Each card shows a color swatch strip, theme name,
+       Japanese name, and a brief description.
+       ====================================================== */
+
+    /* 2-column grid for theme cards */
+    .themes-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Individual theme card */
+    .theme-card {
+      background: white;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow:
+        0 2px 8px rgba(61, 35, 20, 0.06),
+        0 1px 3px rgba(61, 35, 20, 0.04);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+      border: 2px solid transparent;
+    }
+
+    .theme-card:active {
+      transform: scale(0.97);
+    }
+
+    /* Selected theme gets a colored border */
+    .theme-card.selected {
+      border-color: var(--color-sakura-400);
+    }
+
+    /* Color swatch strip at top of theme card
+       Shows the theme's main colors as horizontal bars */
+    .theme-swatch-strip {
+      height: 48px;
+      display: flex;
+    }
+
+    /* Each color block in the strip takes equal width */
+    .theme-swatch-strip > div {
+      flex: 1;
+    }
+
+    /* Theme card text content */
+    .theme-card-body {
+      padding: 10px 12px 12px;
+    }
+
+    .theme-name {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+      margin: 0 0 1px;
+    }
+
+    .theme-kana {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 10px;
+      color: var(--color-text-label, #8a7060);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    /* Active badge shown on currently selected theme */
+    .theme-active-badge {
+      display: inline-block;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 10px;
+      padding: 2px 8px;
+      background: var(--color-sakura-400);
+      color: white;
+      border-radius: 8px;
+    }
+
+    /* ======================================================
+       SECTION 3 — CHANGE PIN
+       ======================================================
+       Three PIN dot rows — current, new, confirm.
+       Each row has a label and 5 dots.
+       A shared number pad below serves all three rows.
+       ====================================================== */
+
+    .pin-change-section {
+      padding: 16px;
+    }
+
+    /* A single PIN row — label + dots */
+    .pin-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .pin-row-label {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      color: var(--color-bark-900);
+      width: 80px;
+      flex-shrink: 0;
+    }
+
+    /* Five dots for each PIN row */
+    .pin-row-dots {
+      display: flex;
+      gap: 8px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .pin-dot-sm {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid rgba(61, 35, 20, 0.2);
+      background: transparent;
+      transition: background 0.15s ease;
+    }
+
+    .pin-dot-sm.filled {
+      background: var(--color-sakura-400);
+      border-color: var(--color-sakura-400);
+    }
+
+    /* Active row indicator — which PIN row is being entered */
+    .pin-row.active .pin-row-label {
+      color: var(--color-sakura-400);
+      font-weight: 700;
+    }
+
+    .pin-row.active .pin-dot-sm {
+      border-color: var(--color-sakura-400);
+    }
+
+    /* Compact number pad for PIN change */
+    .pin-pad-sm {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      max-width: 240px;
+      margin: 0 auto 16px;
+    }
+
+    .pin-key-sm {
+      height: 52px;
+      border-radius: 50%;
+      border: none;
+      background: var(--color-cream);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 20px;
+      color: var(--color-bark-900);
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pin-key-sm:active {
+      background: var(--color-sakura-400);
+      color: white;
+      transform: scale(0.92);
+    }
+
+    .pin-key-sm.empty {
+      background: transparent;
+      pointer-events: none;
+    }
+
+    /* Status message below pad — success or error */
+    .pin-status {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 12px;
+      text-align: center;
+      min-height: 18px;
+      margin-bottom: 8px;
+    }
+
+    .pin-status.success { color: #16a34a; }
+    .pin-status.error   { color: #ef4444; }
+
+    /* Save PIN button */
+    .save-pin-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      background: var(--color-sakura-400);
+      color: white;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s ease, background 0.15s ease;
+      display: none;
+      /* shown only when all 3 PINs are entered */
+    }
+
+    .save-pin-btn.visible {
+      display: block;
+    }
+
+    .save-pin-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* ======================================================
+       SECTION 4 — APP INFO
+       ====================================================== */
+
+    /* Centered app branding in the info section */
+    .app-info-center {
+      padding: 24px 16px;
+      text-align: center;
+    }
+
+    .app-info-title {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+      margin: 0 0 4px;
+    }
+
+    .app-info-version {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 12px;
+      color: var(--color-text-label, #8a7060);
+      margin: 0 0 16px;
+    }
+
+    .app-info-credit {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 12px;
+      color: var(--color-text-label, #8a7060);
+      line-height: 1.8;
+      margin: 0;
+    }
+
+    .app-info-credit span {
+      color: var(--color-sakura-400);
+    }
+
+    /* ======================================================
+       THEMED ANIMATIONS
+       ======================================================
+       Each theme has its own falling element animation.
+       The .theme-particles container is fixed behind everything.
+       Particles are styled and animated based on active theme.
+       ====================================================== */
+
+    .theme-particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    /* Base particle style — all themes share this */
+    .particle {
+      position: absolute;
+      top: -30px;
+      opacity: 0;
+      animation: particleFall linear infinite;
+    }
+
+    @keyframes particleFall {
+      0% {
+        transform: translateY(-30px) translateX(0) rotate(0deg);
+        opacity: 0;
+      }
+      10% { opacity: 0.8; }
+      90% { opacity: 0.5; }
+      100% {
+        transform: translateY(110vh) translateX(60px) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    /* ── SAKURA THEME PARTICLES ──────────────────────────── */
+    .theme-sakura .particle {
+      border-radius: 50% 0 50% 0;
+      background: #f9a8c9;
+    }
+
+    /* ── SUMMER THEME PARTICLES ─────────────────────────── */
+    /* Bubbles float UP instead of falling down */
+    .theme-summer .particle {
+      border-radius: 50%;
+      background: rgba(34, 211, 238, 0.4);
+      border: 1.5px solid rgba(34, 211, 238, 0.6);
+      animation-name: bubbleRise;
+    }
+
+    @keyframes bubbleRise {
+      0% {
+        transform: translateY(110vh) translateX(0) scale(0.8);
+        opacity: 0;
+      }
+      10% { opacity: 0.7; }
+      90% { opacity: 0.4; }
+      100% {
+        transform: translateY(-30px) translateX(40px) scale(1.2);
+        opacity: 0;
+      }
+    }
+
+    /* ── AUTUMN THEME PARTICLES ─────────────────────────── */
+    /* Maple leaves — larger, spin dramatically */
+    .theme-autumn .particle {
+      border-radius: 0 50% 0 50%;
+      animation-name: leafFall;
+    }
+
+    @keyframes leafFall {
+      0% {
+        transform: translateY(-30px) translateX(0) rotate(0deg);
+        opacity: 0;
+      }
+      10% { opacity: 0.9; }
+      50% { transform: translateY(55vh) translateX(-40px) rotate(180deg); }
+      90% { opacity: 0.5; }
+      100% {
+        transform: translateY(110vh) translateX(30px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    /* ── WINTER THEME PARTICLES ─────────────────────────── */
+    /* Snowflakes — slow drift, no rotation */
+    .theme-winter .particle {
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 0 4px rgba(147, 197, 253, 0.8);
+      animation-name: snowFall;
+    }
+
+    @keyframes snowFall {
+      0% {
+        transform: translateY(-20px) translateX(0);
+        opacity: 0;
+      }
+      10% { opacity: 0.9; }
+      50% { transform: translateY(55vh) translateX(20px); }
+      90% { opacity: 0.6; }
+      100% {
+        transform: translateY(110vh) translateX(-10px);
+        opacity: 0;
+      }
+    }
+
+    /* ── FRANÇAIS THEME PARTICLES ───────────────────────── */
+    /* Croissants — emoji rendered as text nodes */
+    .theme-francais .particle {
+      font-size: 20px;
+      background: transparent;
+      animation-name: croissantFall;
+    }
+
+    @keyframes croissantFall {
+      0% {
+        transform: translateY(-30px) translateX(0) rotate(-20deg);
+        opacity: 0;
+      }
+      10% { opacity: 1; }
+      50% { transform: translateY(55vh) translateX(30px) rotate(20deg); }
+      90% { opacity: 0.7; }
+      100% {
+        transform: translateY(110vh) translateX(-20px) rotate(-10deg);
+        opacity: 0;
+      }
+    }
+
+    /* ── ITALIA THEME PARTICLES ─────────────────────────── */
+    /* Pasta swirls — emoji rendered as text nodes */
+    .theme-italia .particle {
+      font-size: 18px;
+      background: transparent;
+      animation-name: pastaFall;
+    }
+
+    @keyframes pastaFall {
+      0% {
+        transform: translateY(-30px) translateX(0) rotate(0deg);
+        opacity: 0;
+      }
+      10% { opacity: 1; }
+      50% { transform: translateY(55vh) translateX(-25px) rotate(180deg); }
+      90% { opacity: 0.7; }
+      100% {
+        transform: translateY(110vh) translateX(15px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    /* ── PARTICLE POSITION VARIATIONS ───────────────────── */
+    /* 10 particles with varied positions, sizes, speeds */
+    .particle:nth-child(1)  { left: 5%;  animation-duration: 7s;  animation-delay: 0s;   width: 10px; height: 10px; }
+    .particle:nth-child(2)  { left: 15%; animation-duration: 11s; animation-delay: 2s;   width: 7px;  height: 7px;  }
+    .particle:nth-child(3)  { left: 28%; animation-duration: 9s;  animation-delay: 4s;   width: 12px; height: 12px; }
+    .particle:nth-child(4)  { left: 42%; animation-duration: 13s; animation-delay: 1s;   width: 8px;  height: 8px;  }
+    .particle:nth-child(5)  { left: 55%; animation-duration: 8s;  animation-delay: 3s;   width: 10px; height: 10px; }
+    .particle:nth-child(6)  { left: 68%; animation-duration: 12s; animation-delay: 5s;   width: 9px;  height: 9px;  }
+    .particle:nth-child(7)  { left: 78%; animation-duration: 10s; animation-delay: 6s;   width: 6px;  height: 6px;  }
+    .particle:nth-child(8)  { left: 88%; animation-duration: 8s;  animation-delay: 7s;   width: 11px; height: 11px; }
+    .particle:nth-child(9)  { left: 35%; animation-duration: 14s; animation-delay: 2s;   width: 7px;  height: 7px;  }
+    .particle:nth-child(10) { left: 72%; animation-duration: 9s;  animation-delay: 8s;   width: 9px;  height: 9px;  }
+
+    @media (prefers-reduced-motion: reduce) {
+      .particle { animation: none; opacity: 0; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ─────────────────────────────────────────────────
+    THEMED PARTICLES CONTAINER
+    Class changes based on active theme — CSS handles
+    the different animation styles per theme.
+  ───────────────────────────────────────────────────── -->
+  <div class="theme-particles" id="theme-particles" aria-hidden="true">
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+  </div>
+
+  <div class="app-wrapper">
+    <div class="safe-area-top"></div>
+
+    <!-- ─────────────────────────────────────────────────
+      PAGE HEADER
+    ───────────────────────────────────────────────────── -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Settings</h1>
+        <span class="page-kana">設定 — せってい</span>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────
+      SCROLLABLE SETTINGS CONTENT
+    ───────────────────────────────────────────────────── -->
+    <div class="settings-scroll">
+
+      <!-- ══════════════════════════════════════════════
+        SECTION 1 — PROFILE
+      ══════════════════════════════════════════════════ -->
+      <div class="settings-section">
+        <p class="section-label">Profile</p>
+        <div class="settings-card">
+
+          <!-- Avatar and name row -->
+          <div class="profile-avatar-row">
+            <div class="profile-avatar" id="profile-avatar">C</div>
+            <div>
+              <p class="profile-name" id="profile-name">Loading...</p>
+              <p class="profile-role">Family Member</p>
+            </div>
+          </div>
+
+          <!-- Color palette -->
+          <div class="color-palette-section">
+            <span class="color-palette-label">Accent Color</span>
+            <div class="color-palette" id="color-palette">
+              <!-- Swatches injected by JavaScript -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════
+        SECTION 2 — THEME
+      ══════════════════════════════════════════════════ -->
+      <div class="settings-section">
+        <p class="section-label">Theme</p>
+        <div class="themes-grid" id="themes-grid">
+          <!-- Theme cards injected by JavaScript -->
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════
+        SECTION 3 — CHANGE PIN
+      ══════════════════════════════════════════════════ -->
+      <div class="settings-section">
+        <p class="section-label">Security</p>
+        <div class="settings-card">
+          <div class="pin-change-section">
+
+            <!-- Three PIN rows — current, new, confirm -->
+            <div class="pin-row active" id="pin-row-current">
+              <span class="pin-row-label">Current</span>
+              <div class="pin-row-dots" id="dots-current">
+                <div class="pin-dot-sm" data-index="0"></div>
+                <div class="pin-dot-sm" data-index="1"></div>
+                <div class="pin-dot-sm" data-index="2"></div>
+                <div class="pin-dot-sm" data-index="3"></div>
+                <div class="pin-dot-sm" data-index="4"></div>
+              </div>
+            </div>
+
+            <div class="pin-row" id="pin-row-new">
+              <span class="pin-row-label">New PIN</span>
+              <div class="pin-row-dots" id="dots-new">
+                <div class="pin-dot-sm" data-index="0"></div>
+                <div class="pin-dot-sm" data-index="1"></div>
+                <div class="pin-dot-sm" data-index="2"></div>
+                <div class="pin-dot-sm" data-index="3"></div>
+                <div class="pin-dot-sm" data-index="4"></div>
+              </div>
+            </div>
+
+            <div class="pin-row" id="pin-row-confirm">
+              <span class="pin-row-label">Confirm</span>
+              <div class="pin-row-dots" id="dots-confirm">
+                <div class="pin-dot-sm" data-index="0"></div>
+                <div class="pin-dot-sm" data-index="1"></div>
+                <div class="pin-dot-sm" data-index="2"></div>
+                <div class="pin-dot-sm" data-index="3"></div>
+                <div class="pin-dot-sm" data-index="4"></div>
+              </div>
+            </div>
+
+            <!-- Status message -->
+            <p class="pin-status" id="pin-status"></p>
+
+            <!-- Compact number pad -->
+            <div class="pin-pad-sm">
+              <button class="pin-key-sm" onclick="pinDigit('1')">1</button>
+              <button class="pin-key-sm" onclick="pinDigit('2')">2</button>
+              <button class="pin-key-sm" onclick="pinDigit('3')">3</button>
+              <button class="pin-key-sm" onclick="pinDigit('4')">4</button>
+              <button class="pin-key-sm" onclick="pinDigit('5')">5</button>
+              <button class="pin-key-sm" onclick="pinDigit('6')">6</button>
+              <button class="pin-key-sm" onclick="pinDigit('7')">7</button>
+              <button class="pin-key-sm" onclick="pinDigit('8')">8</button>
+              <button class="pin-key-sm" onclick="pinDigit('9')">9</button>
+              <button class="pin-key-sm empty"></button>
+              <button class="pin-key-sm" onclick="pinDigit('0')">0</button>
+              <button class="pin-key-sm" onclick="pinDelete()">⌫</button>
+            </div>
+
+            <!-- Save button — visible when all 3 PINs entered -->
+            <button class="save-pin-btn" id="save-pin-btn" onclick="saveNewPIN()">
+              Save New PIN
+            </button>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════
+        SECTION 4 — APP INFO
+      ══════════════════════════════════════════════════ -->
+      <div class="settings-section">
+        <p class="section-label">About</p>
+        <div class="settings-card">
+          <div class="app-info-center">
+            <p class="app-info-title">家族ハブ</p>
+            <p class="app-info-version">Family Hub · Version 1.0.0</p>
+            <p class="app-info-credit">
+              Built with ✿ by <span>The Pattersons</span><br>
+              Powered by Supabase & GitHub Pages<br>
+              Designed for two iPhones and one family
+            </p>
+          </div>
+          <!-- App version row -->
+          <div class="settings-row">
+            <span class="settings-row-label">Version</span>
+            <span class="settings-row-value">1.0.0</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-label">Database</span>
+            <span class="settings-row-value">Supabase Cloud</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-label">Hosting</span>
+            <span class="settings-row-value">GitHub Pages</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- end settings-scroll -->
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" role="navigation" aria-label="Main navigation">
+      <a class="nav-item" href="../index.html">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </a>
+      <a class="nav-item" href="calendar.html">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Calendar</span>
+      </a>
+      <a class="nav-item" href="shopping.html">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-label">Shopping</span>
+      </a>
+      <a class="nav-item" href="budget.html">
+        <span class="nav-icon">💴</span>
+        <span class="nav-label">Budget</span>
+      </a>
+      <a class="nav-item active" href="settings.html" aria-current="page">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Settings</span>
+      </a>
+    </nav>
+
+    <div class="safe-area-bottom"></div>
+  </div>
+
+  <script type="module">
+    import { supabase } from '../supabase.js';
+    import { currentUser } from '../auth.js';
+
+    /* ======================================================
+       THEME DEFINITIONS
+       ======================================================
+       Each theme has:
+         id       → unique key stored in localStorage
+         name     → display name
+         kana     → Japanese name
+         particle → what falls (class added to container)
+         colors   → array of CSS variable overrides
+         swatches → colors shown in the preview strip
+       ====================================================== */
+    const THEMES = [
+      {
+        id: 'sakura',
+        name: 'Sakura',
+        kana: 'さくら · Spring',
+        particle: 'theme-sakura',
+        swatches: ['#fdf6ee', '#f9a8c9', '#c97a4a', '#3d2314'],
+        colors: {
+          '--color-cream':       '#fdf6ee',
+          '--color-bg-page':     '#fdf6ee',
+          '--color-sakura-400':  '#f9a8c9',
+          '--color-yuzu-700':    '#c97a4a',
+          '--color-bark-900':    '#3d2314',
+          '--color-bg-nav':      'rgba(253, 246, 238, 0.85)',
+          '--color-bg-card':     '#ffffff',
+        }
+      },
+      {
+        id: 'summer',
+        name: 'Summer',
+        kana: '夏 · Natsu',
+        particle: 'theme-summer',
+        swatches: ['#f0f9ff', '#22d3ee', '#fcd34d', '#164e63'],
+        colors: {
+          '--color-cream':       '#f0f9ff',
+          '--color-bg-page':     '#f0f9ff',
+          '--color-sakura-400':  '#22d3ee',
+          '--color-yuzu-700':    '#f59e0b',
+          '--color-bark-900':    '#164e63',
+          '--color-bg-nav':      'rgba(240, 249, 255, 0.85)',
+          '--color-bg-card':     '#ffffff',
+        }
+      },
+      {
+        id: 'autumn',
+        name: 'Autumn',
+        kana: '秋 · Aki',
+        particle: 'theme-autumn',
+        swatches: ['#fef3c7', '#f87171', '#fb923c', '#451a03'],
+        colors: {
+          '--color-cream':       '#fef3c7',
+          '--color-bg-page':     '#fef3c7',
+          '--color-sakura-400':  '#f87171',
+          '--color-yuzu-700':    '#fb923c',
+          '--color-bark-900':    '#451a03',
+          '--color-bg-nav':      'rgba(254, 243, 199, 0.85)',
+          '--color-bg-card':     '#ffffff',
+        }
+      },
+      {
+        id: 'winter',
+        name: 'Winter',
+        kana: '冬 · Fuyu',
+        particle: 'theme-winter',
+        swatches: ['#f1f5f9', '#93c5fd', '#cbd5e1', '#1e293b'],
+        colors: {
+          '--color-cream':       '#f1f5f9',
+          '--color-bg-page':     '#f1f5f9',
+          '--color-sakura-400':  '#93c5fd',
+          '--color-yuzu-700':    '#64748b',
+          '--color-bark-900':    '#1e293b',
+          '--color-bg-nav':      'rgba(241, 245, 249, 0.85)',
+          '--color-bg-card':     '#ffffff',
+        }
+      },
+      {
+        id: 'francais',
+        name: 'Français',
+        kana: 'フランス · France',
+        particle: 'theme-francais',
+        swatches: ['#fefce8', '#1e3a5f', '#d4af37', '#1e3a5f'],
+        colors: {
+          '--color-cream':       '#fefce8',
+          '--color-bg-page':     '#fefce8',
+          '--color-sakura-400':  '#1e3a5f',
+          '--color-yuzu-700':    '#d4af37',
+          '--color-bark-900':    '#1e3a5f',
+          '--color-bg-nav':      'rgba(254, 252, 232, 0.85)',
+          '--color-bg-card':     '#ffffff',
+        }
+      },
+      {
+        id: 'italia',
+        name: 'Italia',
+        kana: 'イタリア · Italy',
+        particle: 'theme-italia',
+        swatches: ['#fef9f0', '#c0392b', '#7daa61', '#5d3a1a'],
+        colors: {
+          '--color-cream':       '#fef9f0',
+          '--color-bg-page':     '#fef9f0',
+          '--color-sakura-400':  '#c0392b',
+          '--color-yuzu-700':    '#e67e22',
+          '--color-bark-900':    '#5d3a1a',
+          '--color-bg-nav':      'rgba(254, 249, 240, 0.85)',
+          '--color-bg-card':     '#ffffff',
+        }
+      }
+    ];
+
+    /* ======================================================
+       COLOR PALETTE DEFINITIONS
+       ======================================================
+       16 colors inspired by Japanese nature.
+       Each has a hex value and Japanese name.
+       ====================================================== */
+    const COLORS = [
+      { hex: '#f9a8c9', name: 'さくら' },
+      { hex: '#7dd3fc', name: '空' },
+      { hex: '#c4b5fd', name: '藤' },
+      { hex: '#86efac', name: '抹茶' },
+      { hex: '#fcd34d', name: '柚子' },
+      { hex: '#fb923c', name: '珊瑚' },
+      { hex: '#f87171', name: '紅葉' },
+      { hex: '#4ade80', name: '竹' },
+      { hex: '#22d3ee', name: '海' },
+      { hex: '#e879f9', name: '梅' },
+      { hex: '#94a3b8', name: '山' },
+      { hex: '#a3e635', name: '苔' },
+      { hex: '#fb7185', name: '夕焼け' },
+      { hex: '#2dd4bf', name: '松' },
+      { hex: '#fbbf24', name: '金' },
+      { hex: '#cbd5e1', name: '白樺' },
+    ];
+
+    /* ======================================================
+       STATE
+       ====================================================== */
+    let activeTheme = 'sakura';
+    let activeColor = '#f9a8c9';
+
+    /* PIN change state
+       activeRow tracks which of the 3 PIN rows is being entered:
+         0 = current PIN
+         1 = new PIN
+         2 = confirm new PIN */
+    let pinValues  = ['', '', ''];  /* stores entered digits per row */
+    let activeRow  = 0;             /* which row is active */
+    let savedUserPin = '';          /* user's current PIN from Supabase */
+
+    /* ======================================================
+       INITIALISE
+       ====================================================== */
+    async function init() {
+      /* Load saved theme and color from localStorage
+         Each user has their own theme/color keys so they
+         can be set independently */
+      const themeKey = `fh_theme_${currentUser.name}`;
+      const colorKey = `fh_color_${currentUser.name}`;
+
+      activeTheme = localStorage.getItem(themeKey) || 'sakura';
+      activeColor = localStorage.getItem(colorKey) || currentUser.color;
+
+      /* Apply saved theme immediately */
+      applyTheme(activeTheme, false);
+
+      /* Render all UI sections */
+      renderProfile();
+      renderColorPalette();
+      renderThemes();
+
+      /* Fetch user's current PIN from Supabase for verification */
+      const { data } = await supabase
+        .from('users')
+        .select('pin')
+        .eq('name', currentUser.name)
+        .single();
+
+      if (data) savedUserPin = data.pin;
+    }
+
+    /* ======================================================
+       RENDER PROFILE
+       ======================================================
+       Shows the logged-in user's avatar, name, and
+       applies their current accent color.
+       ====================================================== */
+    function renderProfile() {
+      const avatarEl = document.getElementById('profile-avatar');
+      const nameEl   = document.getElementById('profile-name');
+
+      /* First initial of display name for the avatar circle */
+      avatarEl.textContent       = currentUser.display_name.charAt(0);
+      avatarEl.style.background  = activeColor;
+      nameEl.textContent         = currentUser.display_name;
+    }
+
+    /* ======================================================
+       RENDER COLOR PALETTE
+       ======================================================
+       Builds the 16 color swatches and injects them.
+       Marks the currently selected color as active.
+       ====================================================== */
+    function renderColorPalette() {
+      const paletteEl = document.getElementById('color-palette');
+
+      const html = COLORS.map(color => `
+        <div
+          class="color-swatch ${color.hex === activeColor ? 'selected' : ''}"
+          onclick="selectColor('${color.hex}')"
+        >
+          <div
+            class="swatch-circle"
+            style="background: ${color.hex}"
+          ></div>
+          <span class="swatch-name">${color.name}</span>
+        </div>
+      `).join('');
+
+      paletteEl.innerHTML = html;
+    }
+
+    /* ======================================================
+       SELECT COLOR
+       ======================================================
+       Called when a color swatch is tapped.
+       Updates the accent color, saves to localStorage,
+       and updates the profile avatar color live.
+       ====================================================== */
+    function selectColor(hex) {
+      activeColor = hex;
+
+      /* Save to localStorage under this user's key */
+      localStorage.setItem(`fh_color_${currentUser.name}`, hex);
+
+      /* Update CSS custom property so color applies everywhere */
+      document.documentElement.style.setProperty('--color-user-accent', hex);
+
+      /* Update avatar color live */
+      document.getElementById('profile-avatar').style.background = hex;
+
+      /* Re-render palette to move selected ring */
+      renderColorPalette();
+    }
+
+    /* ======================================================
+       RENDER THEMES
+       ======================================================
+       Builds the 6 theme cards in the 2-column grid.
+       ====================================================== */
+    function renderThemes() {
+      const gridEl = document.getElementById('themes-grid');
+
+      const html = THEMES.map(theme => `
+        <div
+          class="theme-card ${theme.id === activeTheme ? 'selected' : ''}"
+          onclick="selectTheme('${theme.id}')"
+        >
+          <!-- Color strip preview -->
+          <div class="theme-swatch-strip">
+            ${theme.swatches.map(c => `<div style="background:${c}"></div>`).join('')}
+          </div>
+          <div class="theme-card-body">
+            <p class="theme-name">${theme.name}</p>
+            <span class="theme-kana">${theme.kana}</span>
+            ${theme.id === activeTheme
+              ? '<span class="theme-active-badge">Active</span>'
+              : ''
+            }
+          </div>
+        </div>
+      `).join('');
+
+      gridEl.innerHTML = html;
+    }
+
+    /* ======================================================
+       SELECT THEME
+       ======================================================
+       Called when a theme card is tapped.
+       Applies the theme's CSS variables and particle class,
+       saves selection to localStorage.
+       ====================================================== */
+    function selectTheme(themeId) {
+      activeTheme = themeId;
+      localStorage.setItem(`fh_theme_${currentUser.name}`, themeId);
+      applyTheme(themeId, true);
+      renderThemes(); /* re-render to update active badge */
+    }
+
+    /* ======================================================
+       APPLY THEME
+       ======================================================
+       Sets CSS custom properties from the theme definition.
+       Also updates the particle container class so the
+       correct falling animation plays.
+
+       animate → whether to show a brief flash transition
+       ====================================================== */
+    function applyTheme(themeId, animate) {
+      const theme = THEMES.find(t => t.id === themeId);
+      if (!theme) return;
+
+      /* Swap CSS variables on the root element */
+      Object.entries(theme.colors).forEach(([prop, value]) => {
+        document.documentElement.style.setProperty(prop, value);
+      });
+
+      /* Update particle container class for correct animation */
+      const particlesEl = document.getElementById('theme-particles');
+      /* Remove all theme classes first */
+      THEMES.forEach(t => particlesEl.classList.remove(t.particle));
+      /* Add the new theme's particle class */
+      particlesEl.classList.add(theme.particle);
+
+      /* For emoji-based particles (croissants, pasta)
+         we need to set the particle content via JS */
+      updateParticleContent(theme.id);
+
+      /* Brief flash effect when switching themes */
+      if (animate) {
+        document.body.style.transition = 'background 0.4s ease';
+        setTimeout(() => document.body.style.transition = '', 400);
+      }
+    }
+
+    /* ======================================================
+       UPDATE PARTICLE CONTENT
+       ======================================================
+       For emoji themes (Français, Italia) we set the
+       text content of each particle div to the emoji.
+       For CSS-shape themes we clear the text content.
+       ====================================================== */
+    function updateParticleContent(themeId) {
+      const particles = document.querySelectorAll('.particle');
+      const emojiMap  = {
+        francais: '🥐',
+        italia:   '🍝',
+      };
+
+      const emoji = emojiMap[themeId] || '';
+      particles.forEach(p => p.textContent = emoji);
+    }
+
+    /* ======================================================
+       PIN CHANGE LOGIC
+       ======================================================
+       Three rows: current PIN, new PIN, confirm new PIN.
+       activeRow tracks which row is being entered (0, 1, 2).
+       When all three rows are complete, save button appears.
+       ====================================================== */
+
+    /* Called when a number key is tapped */
+    function pinDigit(digit) {
+      /* Don't accept more than 5 digits per row */
+      if (pinValues[activeRow].length >= 5) return;
+
+      pinValues[activeRow] += digit;
+      updatePinDots();
+
+      /* When this row has 5 digits, advance to next row */
+      if (pinValues[activeRow].length === 5) {
+        if (activeRow < 2) {
+          /* Move to next row after short delay */
+          setTimeout(() => {
+            activeRow++;
+            updateActiveRow();
+          }, 300);
+        } else {
+          /* All three rows complete — show save button */
+          document.getElementById('save-pin-btn').classList.add('visible');
+        }
+      }
+    }
+
+    /* Called when delete key is tapped */
+    function pinDelete() {
+      if (pinValues[activeRow].length > 0) {
+        pinValues[activeRow] = pinValues[activeRow].slice(0, -1);
+        updatePinDots();
+      } else if (activeRow > 0) {
+        /* If current row is empty, go back to previous row */
+        activeRow--;
+        updateActiveRow();
+      }
+      /* Clear status and hide save button */
+      document.getElementById('pin-status').textContent = '';
+      document.getElementById('save-pin-btn').classList.remove('visible');
+    }
+
+    /* Updates the filled dots for all three rows */
+    function updatePinDots() {
+      ['current', 'new', 'confirm'].forEach((rowName, index) => {
+        const dots = document.querySelectorAll(`#dots-${rowName} .pin-dot-sm`);
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('filled', i < pinValues[index].length);
+        });
+      });
+    }
+
+    /* Updates which row shows as active */
+    function updateActiveRow() {
+      document.getElementById('pin-row-current').classList.toggle('active', activeRow === 0);
+      document.getElementById('pin-row-new').classList.toggle('active', activeRow === 1);
+      document.getElementById('pin-row-confirm').classList.toggle('active', activeRow === 2);
+    }
+
+    /* Called when Save New PIN button is tapped */
+    async function saveNewPIN() {
+      const statusEl = document.getElementById('pin-status');
+
+      /* Validate current PIN matches what's in Supabase */
+      if (pinValues[0] !== savedUserPin) {
+        statusEl.className = 'pin-status error';
+        statusEl.textContent = 'Current PIN is incorrect';
+        /* Reset and start over */
+        resetPinForm();
+        return;
+      }
+
+      /* Validate new PIN and confirm PIN match */
+      if (pinValues[1] !== pinValues[2]) {
+        statusEl.className = 'pin-status error';
+        statusEl.textContent = 'New PINs do not match';
+        resetPinForm();
+        return;
+      }
+
+      /* Validate new PIN is different from current */
+      if (pinValues[1] === pinValues[0]) {
+        statusEl.className = 'pin-status error';
+        statusEl.textContent = 'New PIN must be different';
+        resetPinForm();
+        return;
+      }
+
+      /* All validations passed — update PIN in Supabase */
+      const { error } = await supabase
+        .from('users')
+        .update({ pin: pinValues[1] })
+        .eq('name', currentUser.name);
+
+      if (error) {
+        statusEl.className = 'pin-status error';
+        statusEl.textContent = 'Could not save — try again';
+        return;
+      }
+
+      /* Success! Update local reference and reset form */
+      savedUserPin = pinValues[1];
+      statusEl.className = 'pin-status success';
+      statusEl.textContent = '✓ PIN updated successfully!';
+      resetPinForm();
+    }
+
+    /* Resets the PIN form back to initial state */
+    function resetPinForm() {
+      pinValues  = ['', '', ''];
+      activeRow  = 0;
+      updatePinDots();
+      updateActiveRow();
+      document.getElementById('save-pin-btn').classList.remove('visible');
+    }
+
+    /* ======================================================
+       ASSIGN FUNCTIONS TO WINDOW
+       ====================================================== */
+    window.selectColor  = selectColor;
+    window.selectTheme  = selectTheme;
+    window.pinDigit     = pinDigit;
+    window.pinDelete    = pinDelete;
+    window.saveNewPIN   = saveNewPIN;
+
+    /* ── START ─────────────────────────────────────────── */
+    init();
+
+  </script>
+</body>
+</html>
