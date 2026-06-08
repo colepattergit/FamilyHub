@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  calendar.html — Family Hub · Calendar
+  ============================================================
+  The full calendar app. Three layers:
+
+  LAYER 1 — GRID VIEW (always visible)
+    Full month grid. Every day cell shows up to 5 colored
+    dots representing events. Today is highlighted.
+    Prev/Next arrows navigate between months.
+    Tapping a day opens the Day Popup.
+
+  LAYER 2 — DAY POPUP (appears over grid)
+    Shows all events for the selected day.
+    Each event has a colored dot, title, and time.
+    "+" button slides in the Add Event form.
+    Scrollable if many events.
+
+  LAYER 3 — ADD EVENT FORM (slides in from right)
+    All fields for creating a new event.
+    Category dropdown with option to create new category.
+    Saves to Supabase and refreshes the grid.
+  ============================================================
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>カレンダー — Calendar</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../style.css" />
+
+  <style>
+    /* ======================================================
+       PAGE LAYOUT
+       ====================================================== */
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      left: 0;
+    }
+
+    .app-wrapper {
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+      background: transparent;
+    }
+
+    /* ── PAGE HEADER ───────────────────────────────────────
+       Contains the month/year title with prev/next arrows
+       and a "Today" button to jump back to current month.
+    ────────────────────────────────────────────────────────── */
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px 10px;
+      padding-top: calc(14px + env(safe-area-inset-top));
+      background: var(--color-cream);
+      border-bottom: 1px solid rgba(249, 168, 201, 0.2);
+      flex-shrink: 0;
+    }
+
+    /* Left side — page title and kana */
+    .cal-header-left {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cal-page-title {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .cal-page-kana {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 10px;
+      color: var(--color-sakura-400);
+      letter-spacing: 2px;
+    }
+
+    /* Right side — today button */
+    .today-btn {
+      padding: 6px 14px;
+      border-radius: 16px;
+      border: 1.5px solid rgba(249, 168, 201, 0.4);
+      background: transparent;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 12px;
+      color: var(--color-bark-900);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s ease;
+    }
+
+    .today-btn:active {
+      background: rgba(249, 168, 201, 0.15);
+    }
+
+    /* ── MONTH NAVIGATION BAR ──────────────────────────────
+       The row showing "< June 2025 >" for navigating months.
+    ────────────────────────────────────────────────────────── */
+    .month-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px 8px;
+      background: var(--color-cream);
+      flex-shrink: 0;
+    }
+
+    /* Month/Year text in the center */
+    .month-title {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+    }
+
+    /* Prev/Next arrow buttons */
+    .month-nav-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      font-size: 18px;
+      color: var(--color-bark-900);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s ease;
+    }
+
+    .month-nav-btn:active {
+      background: rgba(249, 168, 201, 0.2);
+    }
+
+    /* ── DAY OF WEEK HEADERS ───────────────────────────────
+       Sun Mon Tue Wed Thu Fri Sat row above the grid.
+    ────────────────────────────────────────────────────────── */
+    .weekday-headers {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      padding: 0 12px;
+      background: var(--color-cream);
+      flex-shrink: 0;
+    }
+
+    .weekday-label {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-text-label, #8a7060);
+      text-align: center;
+      padding: 4px 0 8px;
+    }
+
+    /* Sunday label in red */
+    .weekday-label:first-child {
+      color: #ef4444;
+    }
+
+    /* ======================================================
+       CALENDAR GRID
+       ====================================================== */
+
+    /* Scrollable wrapper for the grid */
+    .cal-grid-scroll {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 12px 12px;
+      background: transparent;
+    }
+
+    /* The actual grid — 7 columns for days of week */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+    }
+
+    /* ── DAY CELL ────────────────────────────────────────────
+       Each day of the month. Contains the day number
+       and up to 5 colored event dots below it.
+    ────────────────────────────────────────────────────────── */
+    .day-cell {
+      min-height: 64px;
+      border-radius: 10px;
+      padding: 6px 4px 4px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+
+    .day-cell:active {
+      background: rgba(249, 168, 201, 0.15);
+    }
+
+    /* Empty cells for days before month starts */
+    .day-cell.empty {
+      pointer-events: none;
+      cursor: default;
+    }
+
+    /* Today's date cell — highlighted circle */
+    .day-cell.today .day-number {
+      background: var(--color-sakura-400);
+      color: white;
+    }
+
+    /* Days from other months — greyed out */
+    .day-cell.other-month .day-number {
+      color: rgba(61, 35, 20, 0.25);
+    }
+
+    /* Sunday cells — red day number */
+    .day-cell.sunday .day-number {
+      color: #ef4444;
+    }
+
+    /* Today + sunday — pink overrides red */
+    .day-cell.today .day-number {
+      color: white;
+    }
+
+    /* Day number circle */
+    .day-number {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--color-bark-900);
+      flex-shrink: 0;
+      margin-bottom: 3px;
+    }
+
+    /* ── EVENT DOTS ──────────────────────────────────────────
+       Up to 5 colored dots per day cell.
+       Color matches the event's category color.
+    ────────────────────────────────────────────────────────── */
+    .day-dots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      justify-content: center;
+      max-width: 100%;
+    }
+
+    .day-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* "+N more" text when more than 5 events */
+    .day-more {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 8px;
+      color: var(--color-text-label, #8a7060);
+      margin-top: 1px;
+    }
+
+    /* ======================================================
+       DAY POPUP — OVERLAY + CARD
+       ======================================================
+       Appears when a day cell is tapped.
+       Dark overlay behind, white card in center/bottom.
+       ====================================================== */
+
+    .popup-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(61, 35, 20, 0.4);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .popup-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* The day popup card — slides up from bottom */
+    .day-popup {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 24px 24px 0 0;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      z-index: 101;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .day-popup.open {
+      transform: translateY(0);
+    }
+
+    /* Drag handle */
+    .popup-handle {
+      width: 36px;
+      height: 4px;
+      background: rgba(61, 35, 20, 0.15);
+      border-radius: 2px;
+      margin: 12px auto 0;
+      flex-shrink: 0;
+    }
+
+    /* Popup header — date and "+" button */
+    .day-popup-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px 10px;
+      flex-shrink: 0;
+      border-bottom: 1px solid rgba(61, 35, 20, 0.06);
+    }
+
+    /* Selected date title e.g. "Friday, June 6" */
+    .day-popup-title {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+      margin: 0;
+    }
+
+    /* "+" add event button */
+    .add-event-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: var(--color-sakura-400);
+      color: white;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .add-event-btn:active {
+      transform: scale(0.9);
+    }
+
+    /* Scrollable event list inside popup */
+    .day-popup-events {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px 20px;
+    }
+
+    /* Empty state when no events on this day */
+    .day-popup-empty {
+      text-align: center;
+      padding: 30px 0;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      color: var(--color-text-label, #8a7060);
+      line-height: 1.8;
+    }
+
+    /* ── EVENT ROW IN POPUP ──────────────────────────────────
+       Each event shows as a row with:
+         Colored dot | Title + time | Delete button
+    ────────────────────────────────────────────────────────── */
+    .popup-event-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(61, 35, 20, 0.06);
+      animation: fadeIn 0.2s ease both;
+    }
+
+    .popup-event-row:last-child {
+      border-bottom: none;
+    }
+
+    /* Colored dot — matches category color */
+    .popup-event-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Event details — title and time stacked */
+    .popup-event-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .popup-event-title {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-bark-900);
+      margin: 0 0 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .popup-event-meta {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 11px;
+      color: var(--color-text-label, #8a7060);
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Delete event button */
+    .popup-event-delete {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: rgba(61, 35, 20, 0.3);
+      font-size: 14px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+      transition: color 0.15s ease, background 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .popup-event-delete:active {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* ======================================================
+       ADD EVENT FORM — SLIDES IN FROM RIGHT
+       ======================================================
+       Full screen panel that slides in over the popup.
+       Contains all fields for creating a new event.
+       ====================================================== */
+
+    .add-event-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: white;
+      z-index: 102;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .add-event-panel.open {
+      transform: translateX(0);
+    }
+
+    /* Panel header with back button and save button */
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      padding-top: calc(16px + env(safe-area-inset-top));
+      border-bottom: 1px solid rgba(61, 35, 20, 0.08);
+      flex-shrink: 0;
+    }
+
+    .panel-back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 0;
+      border: none;
+      background: transparent;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      color: var(--color-bark-900);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .panel-title {
+      font-family: 'Kaisei Decol', serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--color-bark-900);
+    }
+
+    /* Save event button — top right of panel */
+    .panel-save-btn {
+      padding: 8px 16px;
+      border-radius: 16px;
+      border: none;
+      background: var(--color-sakura-400);
+      color: white;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s ease;
+    }
+
+    .panel-save-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Scrollable form content */
+    .panel-form {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px;
+    }
+
+    /* ── FORM FIELDS ─────────────────────────────────────────
+       Consistent styling for all input fields in the panel.
+    ────────────────────────────────────────────────────────── */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-label {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-text-label, #8a7060);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid rgba(61, 35, 20, 0.12);
+      border-radius: 12px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 16px;
+      color: var(--color-bark-900);
+      background: var(--color-cream);
+      box-sizing: border-box;
+      transition: border-color 0.15s ease;
+      -webkit-appearance: none;
+      appearance: none;
+      outline: none;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--color-sakura-400);
+    }
+
+    /* Two column row for time inputs */
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* ── ALL DAY TOGGLE ──────────────────────────────────────
+       Toggle row for "All Day" event option.
+    ────────────────────────────────────────────────────────── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      margin-bottom: 18px;
+    }
+
+    .toggle-label {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      color: var(--color-bark-900);
+    }
+
+    .toggle-switch {
+      width: 44px;
+      height: 26px;
+      background: #ddd;
+      border-radius: 13px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .toggle-switch.on {
+      background: var(--color-matcha-300, #86efac);
+    }
+
+    .toggle-switch.on::after {
+      transform: translateX(18px);
+    }
+
+    /* ── CATEGORY SELECTOR ───────────────────────────────────
+       Shows existing categories as colored chips.
+       Plus a "New Category" button at the end.
+    ────────────────────────────────────────────────────────── */
+    .category-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    /* Individual category chip */
+    .category-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 2px solid transparent;
+      background: var(--color-cream);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      color: var(--color-bark-900);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.15s ease;
+    }
+
+    /* Selected category chip */
+    .category-chip.selected {
+      border-color: var(--chip-color, var(--color-sakura-400));
+      background: color-mix(in srgb, var(--chip-color, var(--color-sakura-400)) 15%, white);
+    }
+
+    /* Color dot inside chip */
+    .chip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* "+" New Category button */
+    .new-category-btn {
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1.5px dashed rgba(61, 35, 20, 0.2);
+      background: transparent;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      color: var(--color-text-label, #8a7060);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── NEW CATEGORY FORM ───────────────────────────────────
+       Inline form that appears when "New Category" is tapped.
+       Hidden by default.
+    ────────────────────────────────────────────────────────── */
+    .new-category-form {
+      display: none;
+      background: var(--color-cream);
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 8px;
+    }
+
+    .new-category-form.open {
+      display: block;
+    }
+
+    .new-cat-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .new-cat-input {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1.5px solid rgba(61, 35, 20, 0.12);
+      border-radius: 10px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 16px;
+      color: var(--color-bark-900);
+      background: white;
+      -webkit-appearance: none;
+      appearance: none;
+      outline: none;
+    }
+
+    /* Color swatches for new category */
+    .new-cat-colors {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .new-cat-color-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .new-cat-color-dot.selected {
+      border-color: var(--color-bark-900);
+      transform: scale(1.2);
+    }
+
+    .create-cat-btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      background: var(--color-sakura-400);
+      color: white;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── VISIBILITY AND OWNER SELECTS ────────────────────── */
+    .form-select-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* ======================================================
+       ANIMATIONS
+       ====================================================== */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-wrapper">
+    <div class="safe-area-top"></div>
+
+    <!-- ─────────────────────────────────────────────────
+      PAGE HEADER
+    ───────────────────────────────────────────────────── -->
+    <div class="cal-header">
+      <div class="cal-header-left">
+        <h1 class="cal-page-title">Calendar</h1>
+        <span class="cal-page-kana">カレンダー</span>
+      </div>
+      <button class="today-btn" onclick="goToToday()">Today</button>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────
+      MONTH NAVIGATION
+    ───────────────────────────────────────────────────── -->
+    <div class="month-nav">
+      <button class="month-nav-btn" onclick="changeMonth(-1)">‹</button>
+      <span class="month-title" id="month-title">June 2025</span>
+      <button class="month-nav-btn" onclick="changeMonth(1)">›</button>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────
+      WEEKDAY HEADERS
+    ───────────────────────────────────────────────────── -->
+    <div class="weekday-headers">
+      <span class="weekday-label">Sun</span>
+      <span class="weekday-label">Mon</span>
+      <span class="weekday-label">Tue</span>
+      <span class="weekday-label">Wed</span>
+      <span class="weekday-label">Thu</span>
+      <span class="weekday-label">Fri</span>
+      <span class="weekday-label">Sat</span>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────
+      CALENDAR GRID
+      Day cells injected here by JavaScript.
+    ───────────────────────────────────────────────────── -->
+    <div class="cal-grid-scroll">
+      <div class="cal-grid" id="cal-grid">
+        <!-- Day cells rendered by renderGrid() -->
+      </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" role="navigation">
+      <a class="nav-item" href="../index.html">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </a>
+      <a class="nav-item active" href="calendar.html" aria-current="page">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Calendar</span>
+      </a>
+      <a class="nav-item" href="shopping.html">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-label">Shopping</span>
+      </a>
+      <a class="nav-item" href="budget.html">
+        <span class="nav-icon">💴</span>
+        <span class="nav-label">Budget</span>
+      </a>
+      <a class="nav-item" href="settings.html">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Settings</span>
+      </a>
+    </nav>
+
+    <div class="safe-area-bottom"></div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────
+    POPUP OVERLAY — tap to close day popup
+  ───────────────────────────────────────────────────── -->
+  <div class="popup-overlay" id="popup-overlay" onclick="closeDayPopup()"></div>
+
+  <!-- ─────────────────────────────────────────────────
+    DAY POPUP
+    Slides up when a day cell is tapped.
+  ───────────────────────────────────────────────────── -->
+  <div class="day-popup" id="day-popup">
+    <div class="popup-handle"></div>
+    <div class="day-popup-header">
+      <h2 class="day-popup-title" id="day-popup-title">Friday, June 6</h2>
+      <button class="add-event-btn" onclick="openAddEvent()" aria-label="Add event">+</button>
+    </div>
+    <div class="day-popup-events" id="day-popup-events">
+      <!-- Events injected here -->
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────
+    ADD EVENT PANEL
+    Slides in from the right when "+" is tapped.
+  ───────────────────────────────────────────────────── -->
+  <div class="add-event-panel" id="add-event-panel">
+
+    <!-- Panel header -->
+    <div class="panel-header">
+      <button class="panel-back-btn" onclick="closeAddEvent()">← Back</button>
+      <span class="panel-title">New Event</span>
+      <button class="panel-save-btn" onclick="saveEvent()">Save</button>
+    </div>
+
+    <!-- Scrollable form -->
+    <div class="panel-form">
+
+      <!-- Event title -->
+      <div class="form-group">
+        <label class="form-label" for="input-title">Event Title</label>
+        <input
+          class="form-input"
+          id="input-title"
+          type="text"
+          placeholder="e.g. Doctor appointment"
+          autocomplete="off"
+        />
+      </div>
+
+      <!-- Date -->
+      <div class="form-group">
+        <label class="form-label" for="input-date">Date</label>
+        <input
+          class="form-input"
+          id="input-date"
+          type="date"
+        />
+      </div>
+
+      <!-- All Day toggle -->
+      <div class="toggle-row">
+        <span class="toggle-label">All Day</span>
+        <div
+          class="toggle-switch"
+          id="all-day-toggle"
+          onclick="toggleAllDay()"
+        ></div>
+      </div>
+
+      <!-- Start and End time -->
+      <div class="form-group" id="time-fields">
+        <label class="form-label">Time</label>
+        <div class="form-row-2">
+          <input class="form-input" id="input-start-time" type="time" />
+          <input class="form-input" id="input-end-time" type="time" />
+        </div>
+      </div>
+
+      <!-- Category -->
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <div class="category-chips" id="category-chips">
+          <!-- Category chips rendered by JS -->
+        </div>
+        <button class="new-category-btn" onclick="toggleNewCategoryForm()">
+          + New Category
+        </button>
+        <!-- Inline new category form -->
+        <div class="new-category-form" id="new-category-form">
+          <div class="new-cat-row">
+            <input
+              class="new-cat-input"
+              id="input-cat-name"
+              type="text"
+              placeholder="Category name..."
+              autocomplete="off"
+            />
+          </div>
+          <div class="new-cat-colors" id="new-cat-colors">
+            <!-- Color dots rendered by JS -->
+          </div>
+          <button class="create-cat-btn" onclick="createCategory()">
+            Create Category
+          </button>
+        </div>
+      </div>
+
+      <!-- Owner and Visibility -->
+      <div class="form-group">
+        <label class="form-label">Who & Visibility</label>
+        <div class="form-select-row">
+          <select class="form-select" id="input-owner">
+            <option value="family">👨‍👩‍👦 Family</option>
+            <option value="cole">👤 Cole</option>
+            <option value="maggie">👤 Maggie</option>
+          </select>
+          <select class="form-select" id="input-visibility">
+            <option value="both">👀 Both</option>
+            <option value="cole">Cole Only</option>
+            <option value="maggie">Maggie Only</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label class="form-label" for="input-description">Notes (optional)</label>
+        <input
+          class="form-input"
+          id="input-description"
+          type="text"
+          placeholder="Any extra details..."
+          autocomplete="off"
+        />
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module">
+    import '../theme.js';
+    import { supabase } from '../supabase.js';
+    import { currentUser } from '../auth.js';
+
+    /* ======================================================
+       COLOR PALETTE — same 16 colors as settings
+       ====================================================== */
+    const COLORS = [
+      '#f9a8c9','#7dd3fc','#c4b5fd','#86efac',
+      '#fcd34d','#fb923c','#f87171','#4ade80',
+      '#22d3ee','#e879f9','#94a3b8','#a3e635',
+      '#fb7185','#2dd4bf','#fbbf24','#cbd5e1'
+    ];
+
+    /* ======================================================
+       STATE
+       ====================================================== */
+    let currentYear      = new Date().getFullYear();
+    let currentMonth     = new Date().getMonth();
+    /* Month is 0-indexed: 0=Jan, 11=Dec */
+    let selectedDate     = null;  /* "YYYY-MM-DD" string */
+    let allEvents        = [];    /* all events for current month */
+    let categories       = [];    /* all categories from Supabase */
+    let selectedCategory = null;  /* category id chosen in form */
+    let selectedCatColor = COLORS[0]; /* color for new category */
+    let isAllDay         = false;
+
+    /* ======================================================
+       INITIALISE
+       ====================================================== */
+    async function init() {
+      await Promise.all([
+        loadCategories(),
+        loadMonthEvents()
+      ]);
+
+      renderGrid();
+      renderCategoryChips();
+      renderNewCatColors();
+
+      /* Check URL for ?day=YYYY-MM-DD to open a specific day */
+      const params = new URLSearchParams(window.location.search);
+      const day    = params.get('day');
+      if (day) {
+        openDayPopup(day);
+      }
+    }
+
+    /* ======================================================
+       LOAD CATEGORIES
+       ====================================================== */
+    async function loadCategories() {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error loading categories:', error.message);
+        return;
+      }
+
+      categories = data || [];
+    }
+
+    /* ======================================================
+       LOAD MONTH EVENTS
+       ======================================================
+       Fetches all events for the current month.
+       Filters by visibility so private events only show
+       to the correct user.
+       ====================================================== */
+    async function loadMonthEvents() {
+      /* Build date range for the current month
+         YYYY-MM-01 to YYYY-MM-last-day */
+      const year      = currentYear;
+      const month     = currentMonth;
+      const firstDay  = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+      const lastDay   = new Date(year, month + 1, 0);
+      const lastDayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
+
+      const userName = currentUser?.name;
+
+      const { data, error } = await supabase
+        .from('events')
+        .select('*, categories(name, color)')
+        /* Join categories table to get category color */
+        .gte('date', firstDay)
+        .lte('date', lastDayStr)
+        .or(`visibility.eq.both,visibility.eq.${userName}`)
+        .order('time', { ascending: true });
+
+      if (error) {
+        console.error('Error loading events:', error.message);
+        return;
+      }
+
+      allEvents = data || [];
+    }
+
+    /* ======================================================
+       RENDER GRID
+       ======================================================
+       Builds the calendar grid for the current month.
+       Creates day cells with event dots.
+       ====================================================== */
+    function renderGrid() {
+      const gridEl = document.getElementById('cal-grid');
+
+      /* Update month title */
+      const monthNames = [
+        'January','February','March','April','May','June',
+        'July','August','September','October','November','December'
+      ];
+      document.getElementById('month-title').textContent =
+        `${monthNames[currentMonth]} ${currentYear}`;
+
+      const today     = new Date();
+      const todayStr  = today.toISOString().split('T')[0];
+
+      /* First day of month — what day of week does it start on?
+         0=Sun, 1=Mon ... 6=Sat */
+      const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+
+      /* Total days in this month */
+      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+      /* Group events by date for fast lookup
+         eventsByDate = { '2025-06-15': [event1, event2], ... } */
+      const eventsByDate = {};
+      allEvents.forEach(event => {
+        if (!eventsByDate[event.date]) eventsByDate[event.date] = [];
+        eventsByDate[event.date].push(event);
+      });
+
+      let html = '';
+
+      /* Add empty cells before the 1st of the month */
+      for (let i = 0; i < firstDayOfMonth; i++) {
+        html += `<div class="day-cell empty"></div>`;
+      }
+
+      /* Add day cells for each day of the month */
+      for (let day = 1; day <= daysInMonth; day++) {
+        /* Build the date string for this cell */
+        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+        /* Determine CSS classes for this cell */
+        const isToday   = dateStr === todayStr;
+        const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+        const isSunday  = dayOfWeek === 0;
+
+        const classes = [
+          'day-cell',
+          isToday  ? 'today'  : '',
+          isSunday ? 'sunday' : '',
+        ].filter(Boolean).join(' ');
+
+        /* Get events for this day — up to 5 dots shown */
+        const dayEvents  = eventsByDate[dateStr] || [];
+        const dotsToShow = dayEvents.slice(0, 5);
+        const extraCount = dayEvents.length - 5;
+
+        /* Build dot HTML — each dot gets the category color */
+        const dotsHTML = dotsToShow.map(event => {
+          const color = event.categories?.color || '#f9a8c9';
+          return `<div class="day-dot" style="background:${color}"></div>`;
+        }).join('');
+
+        /* "+N" text if more than 5 events */
+        const moreHTML = extraCount > 0
+          ? `<span class="day-more">+${extraCount}</span>`
+          : '';
+
+        html += `
+          <div class="${classes}" onclick="openDayPopup('${dateStr}')">
+            <div class="day-number">${day}</div>
+            <div class="day-dots">
+              ${dotsHTML}
+              ${moreHTML}
+            </div>
+          </div>
+        `;
+      }
+
+      gridEl.innerHTML = html;
+    }
+
+    /* ======================================================
+       CHANGE MONTH
+       ======================================================
+       Navigates to previous (-1) or next (+1) month.
+       Reloads events for the new month and re-renders.
+       ====================================================== */
+    async function changeMonth(direction) {
+      currentMonth += direction;
+
+      /* Handle year rollover */
+      if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      } else if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      }
+
+      await loadMonthEvents();
+      renderGrid();
+    }
+
+    /* ======================================================
+       GO TO TODAY
+       ====================================================== */
+    async function goToToday() {
+      const today  = new Date();
+      currentYear  = today.getFullYear();
+      currentMonth = today.getMonth();
+      await loadMonthEvents();
+      renderGrid();
+    }
+
+    /* ======================================================
+       OPEN DAY POPUP
+       ======================================================
+       Called when a day cell is tapped.
+       Shows all events for that day in the popup.
+       ====================================================== */
+    function openDayPopup(dateStr) {
+      selectedDate = dateStr;
+
+      /* Format the date for the popup title
+         e.g. "Friday, June 6" */
+      const date     = new Date(dateStr + 'T12:00:00');
+      /* Adding T12:00:00 prevents timezone offset issues */
+      const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const monNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const title    = `${dayNames[date.getDay()]}, ${monNames[date.getMonth()]} ${date.getDate()}`;
+
+      document.getElementById('day-popup-title').textContent = title;
+
+      /* Pre-fill the date field in the add event form */
+      document.getElementById('input-date').value = dateStr;
+
+      /* Render events for this day */
+      renderDayEvents(dateStr);
+
+      /* Open popup and overlay */
+      document.getElementById('popup-overlay').classList.add('open');
+      document.getElementById('day-popup').classList.add('open');
+    }
+
+    /* ======================================================
+       RENDER DAY EVENTS
+       ======================================================
+       Builds the event list inside the day popup.
+       ====================================================== */
+    function renderDayEvents(dateStr) {
+      const eventsEl = document.getElementById('day-popup-events');
+      const userName = currentUser?.name;
+
+      /* Filter events to this specific date */
+      const dayEvents = allEvents.filter(e => e.date === dateStr);
+
+      if (dayEvents.length === 0) {
+        eventsEl.innerHTML = `
+          <div class="day-popup-empty">
+            No events today ✿<br>
+            <small>Tap + to add one</small>
+          </div>
+        `;
+        return;
+      }
+
+      const html = dayEvents.map(event => {
+        const color    = event.categories?.color || '#f9a8c9';
+        const timeText = event.all_day
+          ? 'All day'
+          : formatTime(event.time);
+        const catName  = event.categories?.name || '';
+
+        return `
+          <div class="popup-event-row">
+            <div class="popup-event-dot" style="background:${color}"></div>
+            <div class="popup-event-details">
+              <p class="popup-event-title">${event.title}</p>
+              <div class="popup-event-meta">
+                <span>${timeText}</span>
+                ${catName ? `<span>${catName}</span>` : ''}
+                ${event.owner !== 'family' ? `<span>· ${event.owner}</span>` : ''}
+              </div>
+            </div>
+            <button
+              class="popup-event-delete"
+              onclick="deleteEvent(${event.id})"
+            >✕</button>
+          </div>
+        `;
+      }).join('');
+
+      eventsEl.innerHTML = html;
+    }
+
+    /* ======================================================
+       CLOSE DAY POPUP
+       ====================================================== */
+    function closeDayPopup() {
+      document.getElementById('popup-overlay').classList.remove('open');
+      document.getElementById('day-popup').classList.remove('open');
+      /* Also close add event panel if open */
+      document.getElementById('add-event-panel').classList.remove('open');
+    }
+
+    /* ======================================================
+       OPEN / CLOSE ADD EVENT PANEL
+       ====================================================== */
+    function openAddEvent() {
+      /* Reset form fields */
+      document.getElementById('input-title').value       = '';
+      document.getElementById('input-date').value        = selectedDate || '';
+      document.getElementById('input-start-time').value  = '';
+      document.getElementById('input-end-time').value    = '';
+      document.getElementById('input-description').value = '';
+      isAllDay         = false;
+      selectedCategory = null;
+
+      /* Reset all day toggle */
+      document.getElementById('all-day-toggle').classList.remove('on');
+      document.getElementById('time-fields').style.display = 'block';
+
+      /* Re-render category chips with no selection */
+      renderCategoryChips();
+
+      /* Close new category form if open */
+      document.getElementById('new-category-form').classList.remove('open');
+
+      document.getElementById('add-event-panel').classList.add('open');
+    }
+
+    function closeAddEvent() {
+      document.getElementById('add-event-panel').classList.remove('open');
+    }
+
+    /* ======================================================
+       TOGGLE ALL DAY
+       ====================================================== */
+    function toggleAllDay() {
+      isAllDay = !isAllDay;
+      document.getElementById('all-day-toggle').classList.toggle('on', isAllDay);
+      /* Hide time fields when all day is on */
+      document.getElementById('time-fields').style.display =
+        isAllDay ? 'none' : 'block';
+    }
+
+    /* ======================================================
+       RENDER CATEGORY CHIPS
+       ====================================================== */
+    function renderCategoryChips() {
+      const chipsEl = document.getElementById('category-chips');
+
+      if (categories.length === 0) {
+        chipsEl.innerHTML = '<p style="font-size:12px;color:#8a7060;margin:0">No categories yet — create one below!</p>';
+        return;
+      }
+
+      const html = categories.map(cat => `
+        <div
+          class="category-chip ${selectedCategory === cat.id ? 'selected' : ''}"
+          style="--chip-color: ${cat.color}"
+          onclick="selectCategory(${cat.id})"
+        >
+          <div class="chip-dot" style="background:${cat.color}"></div>
+          ${cat.name}
+        </div>
+      `).join('');
+
+      chipsEl.innerHTML = html;
+    }
+
+    /* ======================================================
+       SELECT CATEGORY
+       ====================================================== */
+    function selectCategory(catId) {
+      selectedCategory = selectedCategory === catId ? null : catId;
+      renderCategoryChips();
+    }
+
+    /* ======================================================
+       RENDER NEW CATEGORY COLOR DOTS
+       ====================================================== */
+    function renderNewCatColors() {
+      const colorsEl = document.getElementById('new-cat-colors');
+
+      const html = COLORS.map(color => `
+        <div
+          class="new-cat-color-dot ${color === selectedCatColor ? 'selected' : ''}"
+          style="background:${color}"
+          onclick="selectNewCatColor('${color}')"
+        ></div>
+      `).join('');
+
+      colorsEl.innerHTML = html;
+    }
+
+    /* ======================================================
+       SELECT NEW CATEGORY COLOR
+       ====================================================== */
+    function selectNewCatColor(color) {
+      selectedCatColor = color;
+      renderNewCatColors();
+    }
+
+    /* ======================================================
+       TOGGLE NEW CATEGORY FORM
+       ====================================================== */
+    function toggleNewCategoryForm() {
+      document.getElementById('new-category-form').classList.toggle('open');
+    }
+
+    /* ======================================================
+       CREATE CATEGORY
+       ====================================================== */
+    async function createCategory() {
+      const nameEl = document.getElementById('input-cat-name');
+      const name   = nameEl.value.trim();
+
+      if (!name) {
+        nameEl.style.borderColor = '#ef4444';
+        setTimeout(() => nameEl.style.borderColor = '', 1000);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('categories')
+        .insert({
+          name:       name,
+          color:      selectedCatColor,
+          created_by: currentUser.name
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating category:', error.message);
+        return;
+      }
+
+      /* Add to local array and re-render */
+      categories.push(data);
+      selectedCategory = data.id;
+
+      /* Reset the new category form */
+      nameEl.value     = '';
+      selectedCatColor = COLORS[0];
+      renderNewCatColors();
+      renderCategoryChips();
+
+      /* Close the new category form */
+      document.getElementById('new-category-form').classList.remove('open');
+    }
+
+    /* ======================================================
+       SAVE EVENT
+       ====================================================== */
+    async function saveEvent() {
+      const title = document.getElementById('input-title').value.trim();
+      const date  = document.getElementById('input-date').value;
+
+      /* Title and date are required */
+      if (!title) {
+        const el = document.getElementById('input-title');
+        el.style.borderColor = '#ef4444';
+        setTimeout(() => el.style.borderColor = '', 1000);
+        return;
+      }
+
+      if (!date) {
+        const el = document.getElementById('input-date');
+        el.style.borderColor = '#ef4444';
+        setTimeout(() => el.style.borderColor = '', 1000);
+        return;
+      }
+
+      const startTime = document.getElementById('input-start-time').value || null;
+      const endTime   = document.getElementById('input-end-time').value   || null;
+      const desc      = document.getElementById('input-description').value.trim() || null;
+      const owner     = document.getElementById('input-owner').value;
+      const visibility = document.getElementById('input-visibility').value;
+
+      /* Insert new event into Supabase */
+      const { data, error } = await supabase
+        .from('events')
+        .insert({
+          title:       title,
+          date:        date,
+          time:        isAllDay ? null : startTime,
+          end_time:    isAllDay ? null : endTime,
+          all_day:     isAllDay,
+          category_id: selectedCategory,
+          owner:       owner,
+          visibility:  visibility,
+          description: desc,
+          created_by:  currentUser.name
+        })
+        .select('*, categories(name, color)')
+        .single();
+
+      if (error) {
+        console.error('Error saving event:', error.message);
+        return;
+      }
+
+      /* Add new event to local array */
+      allEvents.push(data);
+
+      /* Close the add panel and refresh */
+      closeAddEvent();
+      renderGrid();
+      renderDayEvents(date);
+    }
+
+    /* ======================================================
+       DELETE EVENT
+       ====================================================== */
+    async function deleteEvent(eventId) {
+      /* Optimistic — remove from local array immediately */
+      allEvents = allEvents.filter(e => e.id !== eventId);
+      renderGrid();
+      if (selectedDate) renderDayEvents(selectedDate);
+
+      /* Then delete from Supabase */
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+
+      if (error) {
+        console.error('Error deleting event:', error.message);
+        /* Reload to restore correct state */
+        await loadMonthEvents();
+        renderGrid();
+      }
+    }
+
+    /* ======================================================
+       FORMAT TIME HELPER
+       ====================================================== */
+    function formatTime(timeStr) {
+      if (!timeStr) return '';
+      const [hours, minutes] = timeStr.split(':');
+      const hour        = parseInt(hours, 10);
+      const period      = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return `${displayHour}:${minutes} ${period}`;
+    }
+
+    /* ======================================================
+       ASSIGN FUNCTIONS TO WINDOW
+       ====================================================== */
+    window.changeMonth           = changeMonth;
+    window.goToToday             = goToToday;
+    window.openDayPopup          = openDayPopup;
+    window.closeDayPopup         = closeDayPopup;
+    window.openAddEvent          = openAddEvent;
+    window.closeAddEvent         = closeAddEvent;
+    window.toggleAllDay          = toggleAllDay;
+    window.selectCategory        = selectCategory;
+    window.selectNewCatColor     = selectNewCatColor;
+    window.toggleNewCategoryForm = toggleNewCategoryForm;
+    window.createCategory        = createCategory;
+    window.saveEvent             = saveEvent;
+    window.deleteEvent           = deleteEvent;
+
+    /* ── START ─────────────────────────────────────────── */
+    init();
+
+  </script>
+</body>
+</html>

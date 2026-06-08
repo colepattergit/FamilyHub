@@ -994,3 +994,101 @@ input, textarea {
   user-select: text;
   -webkit-user-select: text;
 }
+
+/* ============================================================
+   CALENDAR WIDGET — WEATHER + EVENTS STYLES
+   ============================================================
+   Add these to the bottom of your style.css file.
+   ============================================================ */
+
+/* ── WIDGET CALENDAR LINK ────────────────────────────────────
+   Wraps the entire calendar widget content in a tappable
+   link that goes to calendar.html?day=TODAY.
+   display: block makes it fill the full widget area.
+────────────────────────────────────────────────────────────── */
+.widget-calendar-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── WEATHER ROW ─────────────────────────────────────────────
+   Horizontal row showing weather icon, temperature, and
+   condition text. Sits above the event list in the widget.
+────────────────────────────────────────────────────────────── */
+.widget-weather {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 10px;
+  border-bottom: 1px solid rgba(61, 35, 20, 0.06);
+  margin-bottom: 10px;
+}
+
+/* Weather emoji icon */
+.widget-weather-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* Temperature in Fahrenheit */
+.widget-weather-temp {
+  font-family: 'Kaisei Decol', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-bark-900);
+}
+
+/* Condition description e.g. "Partly cloudy" */
+.widget-weather-desc {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 12px;
+  color: var(--color-text-label, #8a7060);
+}
+
+/* ── CALENDAR EVENTS CONTAINER ───────────────────────────────
+   Wraps the event rows inside the widget.
+────────────────────────────────────────────────────────────── */
+.widget-calendar-events {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── RELIEF MESSAGE ──────────────────────────────────────────
+   Shown when there are no events today.
+   "What a relief, nothing happening! ✿"
+────────────────────────────────────────────────────────────── */
+.widget-relief {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  color: var(--color-text-label, #8a7060);
+  text-align: center;
+  padding: 8px 0;
+  margin: 0;
+  font-style: italic;
+}
+
+/* ── CALENDAR EVENT ROW IN WIDGET ────────────────────────────
+   Each event row in the home page calendar widget.
+   Shows a colored dot and the event title/time.
+────────────────────────────────────────────────────────────── */
+.calendar-event {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 12px;
+  color: var(--color-bark-900);
+}
+
+/* Colored dot — matches category color */
+.calendar-event-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-sakura-400);
+  /* overridden inline with category color */
+  flex-shrink: 0;
+}
