@@ -1790,7 +1790,7 @@
    PROMPT DELETE STORE
    ======================================================
    Called when the trash icon on a store card is tapped.
-   storeId      → the id of the store to potentially delete
+   storeId        → the id of the store to potentially delete
    remainingCount → how many unchecked items are in the list
 
    If remainingCount is 0 → delete immediately, no warning
@@ -1803,6 +1803,7 @@ async function promptDeleteStore(storeId, remainingCount) {
 
   /* Set this as the current store so deleteCurrentStore
      knows which one to delete when confirmed */
+  currentUser = store;
   currentStore = store;
 
   if (remainingCount === 0) {
@@ -1810,42 +1811,46 @@ async function promptDeleteStore(storeId, remainingCount) {
     await deleteCurrentStore();
   } else {
     /* List has unpurchased items — show warning */
-    /* Update the confirm dialog text to show the warning */
-    document.querySelector('.confirm-emoji').textContent  = '⚠️';
-    document.querySelector('.confirm-title').textContent  = 'Items Remaining!';
-    document.querySelector('.confirm-text').textContent   =
+    document.querySelector('.confirm-emoji').textContent = '⚠️';
+    document.querySelector('.confirm-title').textContent = 'Items Remaining!';
+    document.querySelector('.confirm-text').textContent  =
       `This list still has ${remainingCount} unpurchased item${remainingCount !== 1 ? 's' : ''}. Are you sure you want to remove it?`;
     openConfirm();
   }
 }
 
-    /* Delete the entire current store and all its items */
-    async function deleteCurrentStore() {
-      if (!currentStore) return;
+/* ======================================================
+   DELETE CURRENT STORE
+   ======================================================
+   Deletes the store optimistically — removes from UI
+   instantly then deletes from Supabase in the background.
+   If Supabase fails, reloads to restore correct state.
+   ====================================================== */
+async function deleteCurrentStore() {
+  if (!currentStore) return;
 
-      /* Delete the store row — cascade deletes all items too
-         because we set up ON DELETE CASCADE on the foreign key */
- /* Store the id before clearing state */
-const storeId = currentStore.id;
+  /* Save the id before clearing state */
+  const storeId = currentStore.id;
 
-/* Remove from local array instantly — UI updates immediately */
-stores = stores.filter(s => s.id !== storeId);
+  /* Remove from local array instantly — UI updates immediately */
+  stores = stores.filter(s => s.id !== storeId);
 
-/* Close dialogs and re-render right away — feels instant */
-closeConfirm();
-currentStore = null;
-await renderStores();
+  /* Close dialogs and re-render right away — feels instant */
+  closeConfirm();
+  currentStore = null;
+  await renderStores();
 
-/* Then actually delete from Supabase in the background */
-const { error } = await supabase
-  .from('shopping_stores')
-  .delete()
-  .eq('id', storeId);
+  /* Then actually delete from Supabase in the background */
+  const { error } = await supabase
+    .from('shopping_stores')
+    .delete()
+    .eq('id', storeId);
 
-if (error) {
-  /* If it failed, reload stores to restore correct state */
-  console.error('Error deleting store:', error.message);
-  await loadStores();
+  if (error) {
+    /* If it failed, reload stores to restore correct state */
+    console.error('Error deleting store:', error.message);
+    await loadStores();
+  }
 }
 
     /* ======================================================
@@ -1877,4 +1882,4 @@ if (error) {
 
   </script>
 </body>
-</html>
+</html> }
