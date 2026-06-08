@@ -42,6 +42,34 @@
        PAGE LAYOUT
        ====================================================== */
 
+    /* ── CATEGORY CHIP DELETE BUTTON ─────────────────────────────
+   Small ✕ button on each category chip in the add event form.
+   Lets users delete categories they no longer need.
+────────────────────────────────────────────────────────────── */
+.category-chip-delete {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(61, 35, 20, 0.15);
+  color: var(--color-bark-900);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+.category-chip-delete:active {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
     html, body {
       height: 100%;
       overflow: hidden;
@@ -202,96 +230,152 @@
       gap: 3px;
     }
 
-    /* ── DAY CELL ────────────────────────────────────────────
-       Each day of the month. Contains the day number
-       and up to 5 colored event dots below it.
-    ────────────────────────────────────────────────────────── */
-    .day-cell {
-      min-height: 64px;
-      border-radius: 10px;
-      padding: 6px 4px 4px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      transition: background 0.15s ease;
-      -webkit-tap-highlight-color: transparent;
-      position: relative;
-    }
+  /* ============================================================
+   CALENDAR GRID UPDATE — OP2 STYLE
+   ============================================================
+   Replace the existing day cell and dot styles in calendar.html
+   with these. Find the comment "DAY CELL" in the <style> block
+   and replace everything from .day-cell down to .day-more
+   with this entire block.
+   ============================================================ */
 
-    .day-cell:active {
-      background: rgba(249, 168, 201, 0.15);
-    }
+/* ── DAY CELL ────────────────────────────────────────────────
+   Taller cells to accommodate event title rows.
+   flex-direction column stacks day number above events.
+   overflow hidden clips event titles at the cell edge.
+────────────────────────────────────────────────────────────── */
+.day-cell {
+  min-height: 90px;
+  border-radius: 8px;
+  padding: 4px 3px 4px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  transition: background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+}
 
-    /* Empty cells for days before month starts */
-    .day-cell.empty {
-      pointer-events: none;
-      cursor: default;
-    }
+.day-cell:active {
+  background: rgba(249, 168, 201, 0.15);
+}
 
-    /* Today's date cell — highlighted circle */
-    .day-cell.today .day-number {
-      background: var(--color-sakura-400);
-      color: white;
-    }
+.day-cell.empty {
+  pointer-events: none;
+  cursor: default;
+  min-height: 90px;
+}
 
-    /* Days from other months — greyed out */
-    .day-cell.other-month .day-number {
-      color: rgba(61, 35, 20, 0.25);
-    }
+/* Today's date cell */
+.day-cell.today .day-number {
+  background: var(--color-sakura-400);
+  color: white;
+}
 
-    /* Sunday cells — red day number */
-    .day-cell.sunday .day-number {
-      color: #ef4444;
-    }
+/* Days from other months */
+.day-cell.other-month .day-number {
+  color: rgba(61, 35, 20, 0.25);
+}
 
-    /* Today + sunday — pink overrides red */
-    .day-cell.today .day-number {
-      color: white;
-    }
+.day-cell.other-month .event-row-title,
+.day-cell.other-month .event-row-allday {
+  opacity: 0.3;
+}
 
-    /* Day number circle */
-    .day-number {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Noto Sans JP', sans-serif;
-      font-size: 13px;
-      font-weight: 400;
-      color: var(--color-bark-900);
-      flex-shrink: 0;
-      margin-bottom: 3px;
-    }
+/* Sunday cells */
+.day-cell.sunday .day-number {
+  color: #ef4444;
+}
 
-    /* ── EVENT DOTS ──────────────────────────────────────────
-       Up to 5 colored dots per day cell.
-       Color matches the event's category color.
-    ────────────────────────────────────────────────────────── */
-    .day-dots {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2px;
-      justify-content: center;
-      max-width: 100%;
-    }
+.day-cell.today .day-number {
+  color: white;
+}
 
-    .day-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
+/* ── DAY NUMBER ──────────────────────────────────────────────
+   Small circle at the top of each cell.
+   Smaller than before to leave room for events.
+────────────────────────────────────────────────────────────── */
+.day-number {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-bark-900);
+  flex-shrink: 0;
+  margin-bottom: 2px;
+  align-self: flex-start;
+  margin-left: 2px;
+}
 
-    /* "+N more" text when more than 5 events */
-    .day-more {
-      font-family: 'Noto Sans JP', sans-serif;
-      font-size: 8px;
-      color: var(--color-text-label, #8a7060);
-      margin-top: 1px;
-    }
+/* ── EVENT ROWS CONTAINER ────────────────────────────────────
+   Holds all event rows below the day number.
+   overflow hidden clips anything beyond cell height.
+────────────────────────────────────────────────────────────── */
+.day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* ── ALL DAY EVENT ROW ───────────────────────────────────────
+   Colored background pill — shown above timed events.
+   background uses the category color at 85% opacity.
+   Text is white for readability on colored backgrounds.
+────────────────────────────────────────────────────────────── */
+.event-row-allday {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  color: white;
+  background: var(--event-color, var(--color-sakura-400));
+  border-radius: 3px;
+  padding: 1px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  /* clip instead of ellipsis — cuts cleanly at cell edge */
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
+/* ── TIMED EVENT ROW ─────────────────────────────────────────
+   No background — just colored text.
+   Color matches the category color.
+   Single line, clipped at cell edge.
+────────────────────────────────────────────────────────────── */
+.event-row-title {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--event-color, var(--color-sakura-400));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  line-height: 1.6;
+  padding: 0 3px;
+  flex-shrink: 0;
+}
+
+/* ── MORE INDICATOR ──────────────────────────────────────────
+   "+N more" shown when more than 5 events exist on a day.
+────────────────────────────────────────────────────────────── */
+.day-more {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 8px;
+  color: var(--color-text-label, #8a7060);
+  padding: 0 3px;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
 
     /* ======================================================
        DAY POPUP — OVERLAY + CARD
@@ -1122,87 +1206,164 @@
        Builds the calendar grid for the current month.
        Creates day cells with event dots.
        ====================================================== */
-    function renderGrid() {
-      const gridEl = document.getElementById('cal-grid');
+/* ============================================================
+   UPDATED renderGrid FUNCTION — OP2 STYLE
+   ============================================================
+   Find the existing renderGrid() function in calendar.html
+   and replace the ENTIRE function with this one.
 
-      /* Update month title */
-      const monthNames = [
-        'January','February','March','April','May','June',
-        'July','August','September','October','November','December'
-      ];
-      document.getElementById('month-title').textContent =
-        `${monthNames[currentMonth]} ${currentYear}`;
+   Search for: function renderGrid() {
+   Replace everything from that line to the closing } of
+   the function with this code below.
+   ============================================================ */
 
-      const today     = new Date();
-      const todayStr  = today.toISOString().split('T')[0];
+function renderGrid() {
+  const gridEl = document.getElementById('cal-grid');
 
-      /* First day of month — what day of week does it start on?
-         0=Sun, 1=Mon ... 6=Sat */
-      const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  /* ── UPDATE MONTH TITLE ───────────────────────────────────
+     Updates the "June 2025" text in the month nav bar.
+  ────────────────────────────────────────────────────────── */
+  const monthNames = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December'
+  ];
+  document.getElementById('month-title').textContent =
+    `${monthNames[currentMonth]} ${currentYear}`;
 
-      /* Total days in this month */
-      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  /* ── TODAY'S DATE STRING ──────────────────────────────────
+     Used to highlight the current day in the grid.
+  ────────────────────────────────────────────────────────── */
+  const today    = new Date();
+  const todayStr = today.toISOString().split('T')[0];
 
-      /* Group events by date for fast lookup
-         eventsByDate = { '2025-06-15': [event1, event2], ... } */
-      const eventsByDate = {};
-      allEvents.forEach(event => {
-        if (!eventsByDate[event.date]) eventsByDate[event.date] = [];
-        eventsByDate[event.date].push(event);
-      });
+  /* ── FIRST DAY AND MONTH LENGTH ───────────────────────────
+     firstDayOfMonth → what day of week the 1st falls on (0=Sun)
+     daysInMonth     → how many days this month has
+  ────────────────────────────────────────────────────────── */
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth     = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-      let html = '';
+  /* ── GROUP EVENTS BY DATE ─────────────────────────────────
+     Creates a lookup object so we can instantly find all
+     events for any given date string.
 
-      /* Add empty cells before the 1st of the month */
-      for (let i = 0; i < firstDayOfMonth; i++) {
-        html += `<div class="day-cell empty"></div>`;
-      }
+     Result looks like:
+     {
+       '2026-06-10': [ event1, event2 ],
+       '2026-06-15': [ event3 ],
+     }
 
-      /* Add day cells for each day of the month */
-      for (let day = 1; day <= daysInMonth; day++) {
-        /* Build the date string for this cell */
-        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+     Events are already sorted by time from the Supabase query.
+     We put all_day events first within each day.
+  ────────────────────────────────────────────────────────── */
+  const eventsByDate = {};
+  allEvents.forEach(event => {
+    if (!eventsByDate[event.date]) eventsByDate[event.date] = [];
+    eventsByDate[event.date].push(event);
+  });
 
-        /* Determine CSS classes for this cell */
-        const isToday   = dateStr === todayStr;
-        const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
-        const isSunday  = dayOfWeek === 0;
+  /* Sort each day's events: all_day first, then by time */
+  Object.keys(eventsByDate).forEach(date => {
+    eventsByDate[date].sort((a, b) => {
+      /* All day events always sort before timed events */
+      if (a.all_day && !b.all_day) return -1;
+      if (!a.all_day && b.all_day) return 1;
+      /* Both timed — sort by time string (HH:MM) */
+      if (a.time && b.time) return a.time.localeCompare(b.time);
+      return 0;
+    });
+  });
 
-        const classes = [
-          'day-cell',
-          isToday  ? 'today'  : '',
-          isSunday ? 'sunday' : '',
-        ].filter(Boolean).join(' ');
+  let html = '';
 
-        /* Get events for this day — up to 5 dots shown */
-        const dayEvents  = eventsByDate[dateStr] || [];
-        const dotsToShow = dayEvents.slice(0, 5);
-        const extraCount = dayEvents.length - 5;
+  /* ── EMPTY CELLS BEFORE MONTH START ──────────────────────
+     Days of the week before the 1st need blank cells so
+     the 1st lands on the correct column.
+     e.g. if June 1 is a Tuesday, we need 2 empty cells.
+  ────────────────────────────────────────────────────────── */
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    html += `<div class="day-cell empty"></div>`;
+  }
 
-        /* Build dot HTML — each dot gets the category color */
-        const dotsHTML = dotsToShow.map(event => {
-          const color = event.categories?.color || '#f9a8c9';
-          return `<div class="day-dot" style="background:${color}"></div>`;
-        }).join('');
+  /* ── BUILD DAY CELLS ──────────────────────────────────────
+     One cell per day of the month.
+  ────────────────────────────────────────────────────────── */
+  for (let day = 1; day <= daysInMonth; day++) {
 
-        /* "+N" text if more than 5 events */
-        const moreHTML = extraCount > 0
-          ? `<span class="day-more">+${extraCount}</span>`
-          : '';
+    /* Build this day's date string e.g. "2026-06-15"
+       padStart(2, '0') ensures single digits get a leading zero
+       so 5 becomes "05" — required for consistent date strings */
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-        html += `
-          <div class="${classes}" onclick="openDayPopup('${dateStr}')">
-            <div class="day-number">${day}</div>
-            <div class="day-dots">
-              ${dotsHTML}
-              ${moreHTML}
-            </div>
-          </div>
+    /* Determine CSS classes for this cell */
+    const isToday   = dateStr === todayStr;
+    const dayOfWeek = new Date(currentYear, currentMonth, day).getDay();
+    const isSunday  = dayOfWeek === 0;
+
+    const classes = [
+      'day-cell',
+      isToday  ? 'today'  : '',
+      isSunday ? 'sunday' : '',
+    ].filter(Boolean).join(' ');
+
+    /* Get events for this day */
+    const dayEvents = eventsByDate[dateStr] || [];
+
+    /* Show up to 5 events, count the rest as overflow */
+    const visibleEvents = dayEvents.slice(0, 5);
+    const extraCount    = dayEvents.length - 5;
+
+    /* ── BUILD EVENT ROWS HTML ────────────────────────────
+       Each event gets one row.
+       All day events → colored background pill
+       Timed events   → colored text, no background
+
+       We use CSS custom property --event-color set inline
+       so each event can have its own color without extra
+       CSS classes. The category color comes from the joined
+       categories table data (event.categories?.color).
+    ────────────────────────────────────────────────────── */
+    const eventsHTML = visibleEvents.map(event => {
+      /* Get category color — fall back to sakura pink */
+      const color = event.categories?.color || '#f9a8c9';
+
+      if (event.all_day) {
+        /* All day event — colored background pill */
+        return `
+          <div
+            class="event-row-allday"
+            style="--event-color: ${color}"
+          >${event.title}</div>
+        `;
+      } else {
+        /* Timed event — colored text only */
+        return `
+          <div
+            class="event-row-title"
+            style="--event-color: ${color}"
+          >${event.title}</div>
         `;
       }
+    }).join('');
 
-      gridEl.innerHTML = html;
-    }
+    /* "+N more" indicator when more than 5 events */
+    const moreHTML = extraCount > 0
+      ? `<div class="day-more">+${extraCount} more</div>`
+      : '';
+
+    html += `
+      <div class="${classes}" onclick="openDayPopup('${dateStr}')">
+        <div class="day-number">${day}</div>
+        <div class="day-events">
+          ${eventsHTML}
+          ${moreHTML}
+        </div>
+      </div>
+    `;
+  }
+
+  gridEl.innerHTML = html;
+}
 
     /* ======================================================
        CHANGE MONTH
@@ -1372,27 +1533,49 @@
     /* ======================================================
        RENDER CATEGORY CHIPS
        ====================================================== */
-    function renderCategoryChips() {
-      const chipsEl = document.getElementById('category-chips');
+   function renderCategoryChips() {
+  const chipsEl = document.getElementById('category-chips');
 
-      if (categories.length === 0) {
-        chipsEl.innerHTML = '<p style="font-size:12px;color:#8a7060;margin:0">No categories yet — create one below!</p>';
-        return;
-      }
+  if (categories.length === 0) {
+    chipsEl.innerHTML = '<p style="font-size:12px;color:#8a7060;margin:0">No categories yet — create one below!</p>';
+    return;
+  }
 
-      const html = categories.map(cat => `
-        <div
-          class="category-chip ${selectedCategory === cat.id ? 'selected' : ''}"
-          style="--chip-color: ${cat.color}"
-          onclick="selectCategory(${cat.id})"
-        >
-          <div class="chip-dot" style="background:${cat.color}"></div>
-          ${cat.name}
-        </div>
-      `).join('');
+  const html = categories.map(cat => `
+    <div
+      class="category-chip ${selectedCategory === cat.id ? 'selected' : ''}"
+      style="--chip-color: ${cat.color}"
+    >
+      <div class="chip-dot" style="background:${cat.color}" onclick="selectCategory(${cat.id})"></div>
+      <span onclick="selectCategory(${cat.id})">${cat.name}</span>
+      <button class="category-chip-delete" onclick="deleteCategory(${cat.id}, '${cat.name}')">✕</button>
+    </div>
+  `).join('');
 
-      chipsEl.innerHTML = html;
-    }
+  chipsEl.innerHTML = html;
+}
+
+async function deleteCategory(catId, catName) {
+  /* Confirm before deleting */
+  if (!confirm(`Delete "${catName}"? Events using this category will lose their color.`)) return;
+
+  /* Remove from local array instantly */
+  categories = categories.filter(c => c.id !== catId);
+  if (selectedCategory === catId) selectedCategory = null;
+  renderCategoryChips();
+
+  /* Delete from Supabase */
+  const { error } = await supabase
+    .from('categories')
+    .delete()
+    .eq('id', catId);
+
+  if (error) {
+    console.error('Error deleting category:', error.message);
+    await loadCategories();
+    renderCategoryChips();
+  }
+}
 
     /* ======================================================
        SELECT CATEGORY
@@ -1587,6 +1770,7 @@
     window.createCategory        = createCategory;
     window.saveEvent             = saveEvent;
     window.deleteEvent           = deleteEvent;
+    window.deleteCategory        = deleteCategory;
 
     /* ── START ─────────────────────────────────────────── */
     init();
