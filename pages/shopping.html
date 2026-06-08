@@ -1825,20 +1825,28 @@ async function promptDeleteStore(storeId, remainingCount) {
 
       /* Delete the store row — cascade deletes all items too
          because we set up ON DELETE CASCADE on the foreign key */
-      const { error } = await supabase
-        .from('shopping_stores')
-        .delete()
-        .eq('id', currentStore.id);
+ /* Store the id before clearing state */
+const storeId = currentStore.id;
 
-      if (error) {
-        console.error('Error deleting store:', error.message);
-        return;
-      }
+/* Remove from local array instantly — UI updates immediately */
+stores = stores.filter(s => s.id !== storeId);
 
-      closeConfirm();
-      /* Navigate back to stores view */
-      await closeStore();
-    }
+/* Close dialogs and re-render right away — feels instant */
+closeConfirm();
+currentStore = null;
+await renderStores();
+
+/* Then actually delete from Supabase in the background */
+const { error } = await supabase
+  .from('shopping_stores')
+  .delete()
+  .eq('id', storeId);
+
+if (error) {
+  /* If it failed, reload stores to restore correct state */
+  console.error('Error deleting store:', error.message);
+  await loadStores();
+}
 
     /* ======================================================
        ASSIGN ALL FUNCTIONS TO WINDOW

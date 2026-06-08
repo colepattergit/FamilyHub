@@ -223,6 +223,7 @@ img {
   flex-direction: column; /* stack children vertically */
 
   position: relative;
+  z-index: 1;
   background-color: var(--color-bg-page);
 
   /* Subtle repeating dot pattern — creates a very faint
@@ -825,4 +826,165 @@ html, body {
   text-align: center;
   padding: 12px 0;
   margin: 0;
+}
+
+/* ── FALLING PETALS CONTAINER ────────────────────────────────
+   Fixed to the screen so petals fall across everything.
+   pointer-events: none means taps pass through to content.
+   z-index: 0 puts petals behind widgets but above background.
+────────────────────────────────────────────────────────────── */
+.petals-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* ── INDIVIDUAL PETAL ────────────────────────────────────────
+   Each petal is an oval shape made with border-radius.
+   They animate using the fallAndDrift keyframe below.
+────────────────────────────────────────────────────────────── */
+.petal {
+  position: absolute;
+  top: -20px;
+  border-radius: 50% 0 50% 0;
+  opacity: 0;
+  animation: fallAndDrift linear infinite;
+}
+
+/* ── PETAL KEYFRAME ──────────────────────────────────────────
+   Petals start above screen, fall to below screen.
+   translateX creates the gentle sideways drift.
+   opacity fades in at top and out at bottom.
+────────────────────────────────────────────────────────────── */
+@keyframes fallAndDrift {
+  0% {
+    transform: translateY(-20px) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.7;
+  }
+  90% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(110vh) translateX(80px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* ── INDIVIDUAL PETAL VARIATIONS ─────────────────────────────
+   10 petals with different sizes, positions, speeds, delays,
+   and drift directions so they look naturally scattered.
+   nth-child selects each petal by its position in the list.
+────────────────────────────────────────────────────────────── */
+.petal:nth-child(1) {
+  left: 8%;
+  width: 10px; height: 10px;
+  background: var(--color-sakura-400);
+  animation-duration: 8s;
+  animation-delay: 0s;
+}
+.petal:nth-child(2) {
+  left: 20%;
+  width: 7px; height: 7px;
+  background: #fce4ef;
+  animation-duration: 11s;
+  animation-delay: 2s;
+}
+.petal:nth-child(3) {
+  left: 35%;
+  width: 12px; height: 12px;
+  background: var(--color-sakura-400);
+  animation-duration: 9s;
+  animation-delay: 4s;
+}
+.petal:nth-child(4) {
+  left: 50%;
+  width: 8px; height: 8px;
+  background: #fce4ef;
+  animation-duration: 13s;
+  animation-delay: 1s;
+}
+.petal:nth-child(5) {
+  left: 65%;
+  width: 10px; height: 10px;
+  background: var(--color-sakura-400);
+  animation-duration: 7s;
+  animation-delay: 3s;
+}
+.petal:nth-child(6) {
+  left: 78%;
+  width: 9px; height: 9px;
+  background: #fce4ef;
+  animation-duration: 12s;
+  animation-delay: 5s;
+}
+.petal:nth-child(7) {
+  left: 15%;
+  width: 6px; height: 6px;
+  background: var(--color-sakura-400);
+  animation-duration: 10s;
+  animation-delay: 6s;
+}
+.petal:nth-child(8) {
+  left: 88%;
+  width: 11px; height: 11px;
+  background: #fce4ef;
+  animation-duration: 8s;
+  animation-delay: 7s;
+}
+.petal:nth-child(9) {
+  left: 42%;
+  width: 7px; height: 7px;
+  background: var(--color-sakura-400);
+  animation-duration: 14s;
+  animation-delay: 2s;
+}
+.petal:nth-child(10) {
+  left: 72%;
+  width: 9px; height: 9px;
+  background: #fce4ef;
+  animation-duration: 9s;
+  animation-delay: 8s;
+}
+
+/* ── RESPECT REDUCED MOTION ──────────────────────────────────
+   Some users have "reduce motion" enabled in accessibility
+   settings. This turns off all petal animations for them.
+────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .petal { animation: none; opacity: 0; }
+}
+
+/* ── DISABLE TEXT SELECTION AND WEB-LIKE BEHAVIORS ──────────
+   Prevents text from being highlighted when tapped or
+   long-pressed, which makes the app feel like a native
+   iPhone app rather than a webpage.
+
+   user-select: none      → disables text selection entirely
+   -webkit-user-select    → required prefix for Safari/iPhone
+   -webkit-touch-callout  → disables the popup menu that appears
+                            when you long-press a link on iPhone
+                            (the one that says Open, Copy, Share)
+────────────────────────────────────────────────────────────── */
+* {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ── RE-ENABLE SELECTION FOR INPUTS ─────────────────────────
+   Input fields and textareas need selection re-enabled so
+   users can still tap to place cursor, select text to edit,
+   copy and paste their own typed content etc.
+────────────────────────────────────────────────────────────── */
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
 }
