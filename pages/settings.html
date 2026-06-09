@@ -700,6 +700,164 @@
     @media (prefers-reduced-motion: reduce) {
       .particle { animation: none; opacity: 0; }
     }
+
+    /* ============================================================
+   SETTINGS ADDITIONS CSS
+   ============================================================
+   Paste these styles at the bottom of the <style> block
+   in settings.html — before the closing </style> tag.
+   ============================================================ */
+
+/* ── IMPORT BUTTON ───────────────────────────────────────────
+   The "Import" button on the calendar import row.
+────────────────────────────────────────────────────────────── */
+.import-btn {
+  padding: 8px 16px;
+  border-radius: 16px;
+  border: none;
+  background: var(--color-sakura-400);
+  color: white;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s ease, background 0.15s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.import-btn:active {
+  transform: scale(0.95);
+  background: var(--color-yuzu-700);
+}
+
+/* ── IMPORT PROGRESS BAR ─────────────────────────────────────
+   Shown during import to indicate progress.
+   The fill bar animates from 0% to 100%.
+────────────────────────────────────────────────────────────── */
+.import-progress-bar {
+  height: 4px;
+  background: rgba(61, 35, 20, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.import-progress-fill {
+  height: 100%;
+  background: var(--color-sakura-400);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+/* Import status text below progress bar */
+.import-status-text {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 12px;
+  color: var(--color-text-label, #8a7060);
+  margin: 0;
+}
+
+/* ── DEVNOTE CARD ────────────────────────────────────────────
+   Each saved dev note displayed as a card below the input.
+────────────────────────────────────────────────────────────── */
+.devnote-card {
+  background: white;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  box-shadow:
+    0 2px 8px rgba(61, 35, 20, 0.06),
+    0 1px 3px rgba(61, 35, 20, 0.04);
+  animation: cardSlideIn 0.25s ease both;
+}
+
+/* Note header — title and delete button side by side */
+.devnote-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+/* Note title */
+.devnote-title {
+  font-family: 'Kaisei Decol', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-bark-900);
+  margin: 0;
+  flex: 1;
+  line-height: 1.3;
+}
+
+/* Delete note button */
+.devnote-delete {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: rgba(61, 35, 20, 0.3);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.devnote-delete:active {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Note description text */
+.devnote-desc {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  color: var(--color-text-label, #8a7060);
+  margin: 0 0 8px;
+  line-height: 1.6;
+}
+
+/* Timestamp at bottom of note */
+.devnote-date {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 10px;
+  color: rgba(61, 35, 20, 0.3);
+  margin: 0;
+}
+
+/* Empty state when no notes yet */
+.devnotes-empty {
+  text-align: center;
+  padding: 20px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  color: var(--color-text-label, #8a7060);
+  background: white;
+  border-radius: 14px;
+}
+
+/* Textarea override — form-input is an input by default */
+textarea.form-input {
+  display: block;
+  width: 100%;
+  min-height: 80px;
+}
+
+/* cardSlideIn animation if not already defined in settings */
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
   </style>
 </head>
 
@@ -878,6 +1036,109 @@
           </div>
         </div>
       </div>
+
+<div class="settings-section">
+  <p class="section-label">Calendar</p>
+  <div class="settings-card">
+ 
+    <!-- Import row -->
+    <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+      <div style="width:100%; display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <p class="settings-row-label">Import Calendar</p>
+          <p style="font-family:'Noto Sans JP',sans-serif; font-size:11px; color:var(--color-text-label,#8a7060); margin:2px 0 0;">
+            Import from Apple Calendar or OP2 (.ics file)
+          </p>
+        </div>
+        <!-- Hidden file input — triggered by the button below -->
+        <input
+          type="file"
+          id="ics-file-input"
+          accept=".ics"
+          style="display:none"
+          onchange="handleICSImport(event)"
+        />
+        <button class="import-btn" onclick="document.getElementById('ics-file-input').click()">
+          Import
+        </button>
+      </div>
+ 
+      <!-- Progress/status area — hidden until import starts -->
+      <div class="import-status" id="import-status" style="display:none; width:100%;">
+        <div class="import-progress-bar">
+          <div class="import-progress-fill" id="import-progress-fill"></div>
+        </div>
+        <p class="import-status-text" id="import-status-text">Preparing...</p>
+      </div>
+ 
+    </div>
+ 
+    <!-- Import history row -->
+    <div class="settings-row">
+      <span class="settings-row-label">Last Import</span>
+      <span class="settings-row-value" id="last-import-date">Never</span>
+    </div>
+ 
+    <!-- Events imported count -->
+    <div class="settings-row">
+      <span class="settings-row-label">Events Imported</span>
+      <span class="settings-row-value" id="import-count">0</span>
+    </div>
+ 
+  </div>
+</div>
+ 
+ 
+<!-- ══════════════════════════════════════════════════════════
+     SECTION 6 — DEVNOTES
+     ══════════════════════════════════════════════════════════ -->
+<div class="settings-section">
+  <p class="section-label">Dev Notes 開発メモ</p>
+  <!-- 開発メモ = kaihatsu memo = development notes -->
+ 
+  <!-- Add new note card -->
+  <div class="settings-card" style="margin-bottom: 10px;">
+    <div style="padding: 16px;">
+ 
+      <!-- Note title input -->
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label" for="note-title-input">Title</label>
+        <input
+          class="form-input"
+          id="note-title-input"
+          type="text"
+          placeholder="e.g. Add push notifications"
+          autocomplete="off"
+          style="font-size:16px;"
+        />
+      </div>
+ 
+      <!-- Note description input -->
+      <div class="form-group" style="margin-bottom:12px;">
+        <label class="form-label" for="note-desc-input">Description</label>
+        <textarea
+          class="form-input"
+          id="note-desc-input"
+          placeholder="Describe the feature or fix..."
+          rows="3"
+          style="font-size:16px; resize:none; line-height:1.5;"
+        ></textarea>
+      </div>
+ 
+      <!-- Save note button -->
+      <button class="create-btn" onclick="saveDevNote()">
+        Save Note
+      </button>
+ 
+    </div>
+  </div>
+ 
+  <!-- Notes list — rendered by JS -->
+  <div id="devnotes-list">
+    <!-- Note cards injected here -->
+  </div>
+ 
+</div>
 
     </div>
     <!-- end settings-scroll -->
@@ -1084,6 +1345,7 @@
       renderColorPalette();
       renderThemes();
 
+
       /* Fetch user's current PIN from Supabase for verification */
       const { data } = await supabase
         .from('users')
@@ -1092,6 +1354,10 @@
         .single();
 
       if (data) savedUserPin = data.pin;
+
+      loadDevNotes();
+      loadImportStats();
+      
     }
 
     /* ======================================================
@@ -1377,6 +1643,563 @@
       document.getElementById('save-pin-btn').classList.remove('visible');
     }
 
+    /* ============================================================
+   SETTINGS ADDITIONS — JAVASCRIPT
+   ============================================================
+   Paste this entire block inside the <script type="module">
+   in settings.html, right before the window assignments
+   section at the bottom.
+
+   Also add these to the window assignments:
+     window.saveDevNote   = saveDevNote;
+     window.deleteDevNote = deleteDevNote;
+     window.handleICSImport = handleICSImport;
+   ============================================================ */
+
+
+/* ======================================================
+   DEVNOTES — localStorage based note system
+   ======================================================
+   Notes are stored in localStorage under the key
+   'fh_devnotes' as a JSON array of note objects.
+
+   Each note object:
+   {
+     id:          timestamp number — unique ID
+     title:       string
+     description: string
+     created_at:  ISO date string for display
+   }
+   ====================================================== */
+
+/* ── LOAD AND RENDER DEVNOTES ──────────────────────────────
+   Called on page init to show existing notes.
+────────────────────────────────────────────────────────────── */
+function loadDevNotes() {
+  renderDevNotes();
+}
+
+/* ── RENDER DEVNOTES ─────────────────────────────────────────
+   Reads notes from localStorage and builds card HTML.
+────────────────────────────────────────────────────────────── */
+function renderDevNotes() {
+  const listEl = document.getElementById('devnotes-list');
+
+  /* Read notes from localStorage
+     JSON.parse converts the stored string back to an array.
+     If nothing is stored yet, default to empty array. */
+  const notes = JSON.parse(localStorage.getItem('fh_devnotes') || '[]');
+
+  if (notes.length === 0) {
+    listEl.innerHTML = `
+      <div class="devnotes-empty">
+        No dev notes yet ✿<br>
+        <small>Add ideas and reminders above</small>
+      </div>
+    `;
+    return;
+  }
+
+  /* Build card HTML for each note
+     Most recent notes first — reverse() flips the array */
+  const html = [...notes].reverse().map(note => `
+    <div class="devnote-card">
+      <div class="devnote-header">
+        <p class="devnote-title">${escapeHtml(note.title)}</p>
+        <button class="devnote-delete" onclick="deleteDevNote(${note.id})">✕</button>
+      </div>
+      <p class="devnote-desc">${escapeHtml(note.description)}</p>
+      <p class="devnote-date">${formatNoteDate(note.created_at)}</p>
+    </div>
+  `).join('');
+
+  listEl.innerHTML = html;
+}
+
+/* ── SAVE DEVNOTE ────────────────────────────────────────────
+   Called when "Save Note" button is tapped.
+   Reads inputs, validates, saves to localStorage, re-renders.
+────────────────────────────────────────────────────────────── */
+function saveDevNote() {
+  const titleEl = document.getElementById('note-title-input');
+  const descEl  = document.getElementById('note-desc-input');
+
+  const title = titleEl.value.trim();
+  const desc  = descEl.value.trim();
+
+  /* Title is required */
+  if (!title) {
+    titleEl.style.borderColor = '#ef4444';
+    setTimeout(() => titleEl.style.borderColor = '', 1000);
+    return;
+  }
+
+  /* Read existing notes from localStorage */
+  const notes = JSON.parse(localStorage.getItem('fh_devnotes') || '[]');
+
+  /* Create new note object
+     Date.now() gives a unique millisecond timestamp as ID */
+  const newNote = {
+    id:          Date.now(),
+    title:       title,
+    description: desc,
+    created_at:  new Date().toISOString()
+  };
+
+  /* Add to array and save back to localStorage
+     JSON.stringify converts the array back to a string */
+  notes.push(newNote);
+  localStorage.setItem('fh_devnotes', JSON.stringify(notes));
+
+  /* Clear input fields */
+  titleEl.value = '';
+  descEl.value  = '';
+
+  /* Re-render the notes list */
+  renderDevNotes();
+}
+
+/* ── DELETE DEVNOTE ──────────────────────────────────────────
+   Removes a note by its ID from localStorage.
+────────────────────────────────────────────────────────────── */
+function deleteDevNote(noteId) {
+  const notes   = JSON.parse(localStorage.getItem('fh_devnotes') || '[]');
+  const updated = notes.filter(n => n.id !== noteId);
+  localStorage.setItem('fh_devnotes', JSON.stringify(updated));
+  renderDevNotes();
+}
+
+/* ── FORMAT NOTE DATE ────────────────────────────────────────
+   Converts ISO date string to readable format.
+   "2026-06-08T14:30:00.000Z" → "Jun 8, 2026"
+────────────────────────────────────────────────────────────── */
+function formatNoteDate(isoString) {
+  return new Date(isoString).toLocaleDateString('en-US', {
+    month: 'short',
+    day:   'numeric',
+    year:  'numeric'
+  });
+}
+
+/* ── ESCAPE HTML ─────────────────────────────────────────────
+   Prevents XSS by escaping special characters in note text.
+   This stops someone from accidentally storing HTML that
+   would execute when rendered.
+────────────────────────────────────────────────────────────── */
+function escapeHtml(str) {
+  return str
+    .replace(/&/g,  '&amp;')
+    .replace(/</g,  '&lt;')
+    .replace(/>/g,  '&gt;')
+    .replace(/"/g,  '&quot;')
+    .replace(/'/g,  '&#039;');
+}
+
+
+/* ======================================================
+   CALENDAR IMPORT — .ics file parser
+   ======================================================
+   Reads a .ics file selected by the user, parses every
+   VEVENT block, expands recurring events up to 12 months
+   ahead, skips duplicates, and saves to Supabase.
+   ====================================================== */
+
+/* ── HANDLE ICS IMPORT ───────────────────────────────────────
+   Called when user selects a .ics file from the file picker.
+   Reads the file as text and kicks off parsing.
+────────────────────────────────────────────────────────────── */
+async function handleICSImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  /* Show the progress area */
+  const statusEl   = document.getElementById('import-status');
+  const progressEl = document.getElementById('import-progress-fill');
+  const statusText = document.getElementById('import-status-text');
+  statusEl.style.display = 'block';
+  progressEl.style.width = '5%';
+  statusText.textContent = 'Reading file...';
+
+  /* Read the file contents as text */
+  const text = await file.text();
+
+  statusText.textContent = 'Parsing events...';
+  progressEl.style.width = '20%';
+
+  /* Parse all VEVENT blocks from the .ics text */
+  const parsedEvents = parseICS(text);
+  statusText.textContent = `Found ${parsedEvents.length} events...`;
+  progressEl.style.width = '40%';
+
+  if (parsedEvents.length === 0) {
+    statusText.textContent = 'No events found in file.';
+    return;
+  }
+
+  /* Fetch existing events to check for duplicates
+     We get title + date for comparison */
+  const { data: existingEvents } = await supabase
+    .from('events')
+    .select('title, date');
+
+  /* Build a Set of "title|date" strings for fast duplicate lookup
+     Set is like an array but checking .has() is much faster */
+  const existingSet = new Set(
+    (existingEvents || []).map(e => `${e.title}|${e.date}`)
+  );
+
+  progressEl.style.width = '60%';
+  statusText.textContent = 'Checking for duplicates...';
+
+  /* Filter out duplicates — skip if title+date already exists */
+  const newEvents = parsedEvents.filter(e =>
+    !existingSet.has(`${e.title}|${e.date}`)
+  );
+
+  statusText.textContent = `Importing ${newEvents.length} new events...`;
+  progressEl.style.width = '75%';
+
+  if (newEvents.length === 0) {
+    progressEl.style.width = '100%';
+    statusText.textContent = '✓ All events already imported — nothing new!';
+    updateImportStats(0);
+    return;
+  }
+
+  /* Insert all new events in batches of 50
+     Supabase handles bulk inserts efficiently but very large
+     arrays can time out — batching prevents that */
+  const BATCH_SIZE = 50;
+  let imported = 0;
+
+  for (let i = 0; i < newEvents.length; i += BATCH_SIZE) {
+    const batch = newEvents.slice(i, i + BATCH_SIZE);
+
+    const { error } = await supabase
+      .from('events')
+      .insert(batch);
+
+    if (error) {
+      console.error('Import batch error:', error.message);
+    } else {
+      imported += batch.length;
+    }
+
+    /* Update progress bar as batches complete */
+    const batchProgress = 75 + (25 * (i + BATCH_SIZE) / newEvents.length);
+    progressEl.style.width = `${Math.min(batchProgress, 98)}%`;
+  }
+
+  /* Complete! */
+  progressEl.style.width = '100%';
+  statusText.textContent = `✓ Imported ${imported} events successfully!`;
+
+  /* Update import stats in localStorage */
+  updateImportStats(imported);
+
+  /* Reset file input so same file can be imported again later */
+  event.target.value = '';
+
+  /* Hide status after 3 seconds */
+  setTimeout(() => {
+    statusEl.style.display = 'none';
+    progressEl.style.width = '0%';
+  }, 3000);
+}
+
+/* ── PARSE ICS ───────────────────────────────────────────────
+   Parses a .ics file string and returns an array of event
+   objects ready to insert into Supabase.
+
+   Handles:
+     - Regular one-time events
+     - All day events (DATE format vs DATETIME)
+     - Recurring events (RRULE) expanded 12 months ahead
+     - Timezone offsets in DTSTART/DTEND values
+────────────────────────────────────────────────────────────── */
+function parseICS(icsText) {
+  const events = [];
+
+  /* Split the file into individual VEVENT blocks
+     Each event starts with BEGIN:VEVENT and ends with END:VEVENT */
+  const vevents = icsText.split('BEGIN:VEVENT').slice(1);
+
+  /* 12 months from today — the cutoff for recurring event expansion */
+  const cutoffDate = new Date();
+  cutoffDate.setMonth(cutoffDate.getMonth() + 12);
+
+  vevents.forEach(block => {
+    /* Extract field values using helper function */
+    const summary    = getICSField(block, 'SUMMARY');
+    const dtstart    = getICSField(block, 'DTSTART');
+    const dtend      = getICSField(block, 'DTEND');
+    const rrule      = getICSField(block, 'RRULE');
+    const description = getICSField(block, 'DESCRIPTION');
+
+    if (!summary || !dtstart) return; /* skip invalid events */
+
+    /* Determine if this is an all-day event
+       All day events use DATE format: DTSTART;VALUE=DATE:20260615
+       Timed events use DATETIME format: DTSTART:20260615T140000Z */
+    const isAllDay = dtstart.includes('VALUE=DATE') ||
+                     (!dtstart.includes('T') && dtstart.length <= 8 + 10);
+
+    /* Parse the start date string into a JS Date object */
+    const startDate = parseICSDate(dtstart);
+    if (!startDate) return; /* skip if date can't be parsed */
+
+    /* Extract time for timed events */
+    let timeStr = null;
+    if (!isAllDay && dtstart.includes('T')) {
+      /* Get the time portion from the DATETIME string
+         e.g. "20260615T140000Z" → "14:00" */
+      const rawTime = dtstart.replace(/.*T(\d{2})(\d{2}).*/, '$1:$2');
+      if (rawTime.includes(':')) timeStr = rawTime;
+    }
+
+    /* Build the base event object */
+    const baseEvent = {
+      title:       summary,
+      all_day:     isAllDay,
+      time:        timeStr,
+      description: description || null,
+      visibility:  'both',
+      owner:       'family',
+      created_by:  currentUser.name
+    };
+
+    if (rrule) {
+      /* ── RECURRING EVENT ──────────────────────────────────
+         Expand the recurrence rule into individual occurrences
+         up to 12 months from today.
+      ──────────────────────────────────────────────────────── */
+      const occurrences = expandRRule(startDate, rrule, cutoffDate);
+      occurrences.forEach(date => {
+        events.push({
+          ...baseEvent,
+          date: formatDateForDB(date)
+        });
+      });
+    } else {
+      /* ── ONE-TIME EVENT ───────────────────────────────────
+         Only import if it's in the future or today.
+         Skip past events to keep the calendar clean.
+      ──────────────────────────────────────────────────────── */
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (startDate >= today) {
+        events.push({
+          ...baseEvent,
+          date: formatDateForDB(startDate)
+        });
+      }
+    }
+  });
+
+  return events;
+}
+
+/* ── GET ICS FIELD ───────────────────────────────────────────
+   Extracts the value of a named field from a VEVENT block.
+   Handles multi-line values (folded lines starting with space).
+
+   e.g. getICSField(block, 'SUMMARY') → "Doctor Appointment"
+────────────────────────────────────────────────────────────── */
+function getICSField(block, fieldName) {
+  /* Unfold lines — .ics files wrap long lines with a space/tab
+     at the start of the continuation line */
+  const unfolded = block.replace(/\r?\n[ \t]/g, '');
+
+  /* Match the field name (with optional parameters like ;VALUE=DATE)
+     and capture everything up to the next newline */
+  const regex  = new RegExp(`${fieldName}[^:]*:([^\\r\\n]*)`, 'i');
+  const match  = unfolded.match(regex);
+
+  if (!match) return null;
+
+  /* Clean up the value — unescape .ics special characters
+     \n → newline, \, → comma, \; → semicolon */
+  return match[1]
+    .replace(/\\n/g, ' ')
+    .replace(/\\,/g, ',')
+    .replace(/\\;/g, ';')
+    .trim();
+}
+
+/* ── PARSE ICS DATE ──────────────────────────────────────────
+   Converts an .ics date string to a JavaScript Date object.
+
+   Handles formats:
+     20260615          → all day date (YYYYMMDD)
+     20260615T140000Z  → UTC datetime
+     20260615T140000   → local datetime
+────────────────────────────────────────────────────────────── */
+function parseICSDate(dtValue) {
+  /* Strip any parameters before the colon e.g. "DTSTART;VALUE=DATE:20260615"
+     → "20260615" */
+  const clean = dtValue.replace(/^[^:]*:/, '').trim();
+
+  try {
+    if (clean.includes('T')) {
+      /* DateTime format */
+      const year  = clean.substring(0, 4);
+      const month = clean.substring(4, 6);
+      const day   = clean.substring(6, 8);
+      const hour  = clean.substring(9, 11);
+      const min   = clean.substring(11, 13);
+      return new Date(`${year}-${month}-${day}T${hour}:${min}:00`);
+    } else {
+      /* Date only format */
+      const year  = clean.substring(0, 4);
+      const month = clean.substring(4, 6);
+      const day   = clean.substring(6, 8);
+      return new Date(`${year}-${month}-${day}T12:00:00`);
+    }
+  } catch (e) {
+    return null;
+  }
+}
+
+/* ── EXPAND RRULE ────────────────────────────────────────────
+   Expands a recurrence rule into individual Date occurrences
+   from the start date up to the cutoff date (12 months).
+
+   Handles the most common RRULE types:
+     FREQ=DAILY
+     FREQ=WEEKLY   (with optional BYDAY)
+     FREQ=MONTHLY  (with optional BYDAY or BYMONTHDAY)
+     FREQ=YEARLY
+
+   rrule string looks like:
+     "FREQ=WEEKLY;BYDAY=MO,WE,FR"
+     "FREQ=MONTHLY;BYMONTHDAY=15"
+     "FREQ=YEARLY"
+────────────────────────────────────────────────────────────── */
+function expandRRule(startDate, rrule, cutoffDate) {
+  const occurrences = [];
+  const today       = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  /* Parse RRULE components into an object
+     "FREQ=WEEKLY;BYDAY=MO" → { FREQ: 'WEEKLY', BYDAY: 'MO' } */
+  const rules = {};
+  rrule.split(';').forEach(part => {
+    const [key, val] = part.split('=');
+    if (key && val) rules[key.trim()] = val.trim();
+  });
+
+  const freq     = rules['FREQ'] || 'DAILY';
+  const interval = parseInt(rules['INTERVAL'] || '1', 10);
+
+  /* Day name to number mapping for BYDAY parsing
+     SU=0, MO=1, TU=2, WE=3, TH=4, FR=5, SA=6 */
+  const dayMap = { SU:0, MO:1, TU:2, WE:3, TH:4, FR:5, SA:6 };
+
+  /* Start from the given start date */
+  let current = new Date(startDate);
+
+  /* Safety limit — prevent infinite loops */
+  const MAX_OCCURRENCES = 500;
+
+  while (current <= cutoffDate && occurrences.length < MAX_OCCURRENCES) {
+    /* Only include dates from today onwards — skip past occurrences */
+    if (current >= today) {
+      occurrences.push(new Date(current));
+    }
+
+    /* Advance to next occurrence based on frequency */
+    switch (freq) {
+      case 'DAILY':
+        /* Move forward by interval days */
+        current.setDate(current.getDate() + interval);
+        break;
+
+      case 'WEEKLY':
+        if (rules['BYDAY']) {
+          /* BYDAY specifies which days of the week
+             e.g. BYDAY=MO,WE,FR → Monday, Wednesday, Friday */
+          const days = rules['BYDAY'].split(',').map(d => dayMap[d.trim()]).filter(d => d !== undefined);
+          /* Move to next day, check if it's one of our target days */
+          current.setDate(current.getDate() + 1);
+          /* Keep moving until we hit a target day */
+          let safetyCounter = 0;
+          while (!days.includes(current.getDay()) && safetyCounter < 7) {
+            current.setDate(current.getDate() + 1);
+            safetyCounter++;
+          }
+        } else {
+          /* No BYDAY — just move forward by interval weeks */
+          current.setDate(current.getDate() + (7 * interval));
+        }
+        break;
+
+      case 'MONTHLY':
+        if (rules['BYMONTHDAY']) {
+          /* BYMONTHDAY=15 → 15th of each month */
+          const targetDay = parseInt(rules['BYMONTHDAY'], 10);
+          current.setMonth(current.getMonth() + interval);
+          current.setDate(targetDay);
+        } else {
+          /* No specific day — same day next month */
+          current.setMonth(current.getMonth() + interval);
+        }
+        break;
+
+      case 'YEARLY':
+        /* Same date next year */
+        current.setFullYear(current.getFullYear() + interval);
+        break;
+
+      default:
+        /* Unknown frequency — stop to prevent infinite loop */
+        return occurrences;
+    }
+  }
+
+  return occurrences;
+}
+
+/* ── FORMAT DATE FOR DB ──────────────────────────────────────
+   Converts a JS Date to a "YYYY-MM-DD" string for Supabase.
+────────────────────────────────────────────────────────────── */
+function formatDateForDB(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/* ── UPDATE IMPORT STATS ─────────────────────────────────────
+   Saves import date and count to localStorage and updates
+   the display in the settings card.
+────────────────────────────────────────────────────────────── */
+function updateImportStats(count) {
+  /* Read existing total */
+  const existing = parseInt(localStorage.getItem('fh_import_count') || '0');
+  const newTotal = existing + count;
+
+  /* Save updated stats */
+  localStorage.setItem('fh_import_date',  new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+  localStorage.setItem('fh_import_count', String(newTotal));
+
+  /* Update the display */
+  const dateEl  = document.getElementById('last-import-date');
+  const countEl = document.getElementById('import-count');
+  if (dateEl)  dateEl.textContent  = localStorage.getItem('fh_import_date') || 'Never';
+  if (countEl) countEl.textContent = localStorage.getItem('fh_import_count') || '0';
+}
+
+/* ── LOAD IMPORT STATS ON PAGE LOAD ──────────────────────────
+   Shows the last import date and count from localStorage.
+────────────────────────────────────────────────────────────── */
+function loadImportStats() {
+  const dateEl  = document.getElementById('last-import-date');
+  const countEl = document.getElementById('import-count');
+  if (dateEl)  dateEl.textContent  = localStorage.getItem('fh_import_date')  || 'Never';
+  if (countEl) countEl.textContent = localStorage.getItem('fh_import_count') || '0';
+}
+
     /* ======================================================
        ASSIGN FUNCTIONS TO WINDOW
        ====================================================== */
@@ -1385,6 +2208,9 @@
     window.pinDigit     = pinDigit;
     window.pinDelete    = pinDelete;
     window.saveNewPIN   = saveNewPIN;
+    window.saveDevNote   = saveDevNote;
+    window.deleteDevNote = deleteDevNote; 
+    window.handleICSImport = handleICSImport; 
 
     /* ── START ─────────────────────────────────────────── */
     init();
