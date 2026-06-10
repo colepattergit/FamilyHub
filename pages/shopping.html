@@ -1480,7 +1480,8 @@
     let isSecretOn    = false;    /* new store popup secret toggle state */
     let isNecessity   = false;    /* necessity toggle state */
     let currentFilter = 'all';    /* 'all' or 'necessity' */
-
+    let addPanelOpen = false;
+    let panelStartY  = 0;
     /* ======================================================
        INITIALISE
        ======================================================
@@ -1825,7 +1826,101 @@
        validates that a name was entered, then inserts a new
        row into shopping_items and refreshes the list.
        ====================================================== */
-    async function addItem() {
+    
+    /* ── TOGGLE ADD PANEL ──────────────────────────────────────── */
+function toggleAddPanel() {
+  if (addPanelOpen) {
+    closeAddPanel();
+  } else {
+    openAddPanel();
+  }
+}
+
+/* ── OPEN ADD PANEL ────────────────────────────────────────── */
+async function openAddPanel() {
+  addPanelOpen = true;
+  await updateListTotal();
+
+  const overlay = document.getElementById('add-panel-overlay');
+  overlay.style.display = 'block';
+  setTimeout(() => overlay.style.opacity = '1', 10);
+
+  document.getElementById('add-item-panel').classList.add('open');
+  document.getElementById('float-add-btn').classList.add('open');
+
+  setTimeout(() => {
+    document.getElementById('input-item-name').focus();
+  }, 380);
+
+  setupSwipeDismiss();
+}
+
+/* ── CLOSE ADD PANEL ───────────────────────────────────────── */
+function closeAddPanel() {
+  addPanelOpen = false;
+
+  const overlay = document.getElementById('add-panel-overlay');
+  overlay.style.opacity = '0';
+  setTimeout(() => overlay.style.display = 'none', 300);
+
+  document.getElementById('add-item-panel').classList.remove('open');
+  document.getElementById('float-add-btn').classList.remove('open');
+}
+
+/* ── SETUP SWIPE DISMISS ───────────────────────────────────── */
+function setupSwipeDismiss() {
+  const handle = document.getElementById('panel-drag-handle');
+  const panel  = document.getElementById('add-item-panel');
+
+  handle.addEventListener('touchstart', e => {
+    panelStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  handle.addEventListener('touchmove', e => {
+    const deltaY = e.touches[0].clientY - panelStartY;
+    if (deltaY > 0) {
+      panel.style.transform = `translateY(${deltaY}px)`;
+      panel.style.transition = 'none';
+    }
+  }, { passive: true });
+
+  handle.addEventListener('touchend', e => {
+    const deltaY = e.changedTouches[0].clientY - panelStartY;
+    panel.style.transition = '';
+    panel.style.transform  = '';
+    if (deltaY > 80) {
+      closeAddPanel();
+    }
+  }, { passive: true });
+}
+
+/* ── TOGGLE ADD NECESSITY ──────────────────────────────────── */
+function toggleAddNecessity() {
+  isNecessity = !isNecessity;
+  document.getElementById('add-necessity-toggle').classList.toggle('on', isNecessity);
+}
+
+/* ── UPDATE LIST TOTAL ─────────────────────────────────────── */
+async function updateListTotal() {
+  if (!currentStore) return;
+
+  const { data } = await supabase
+    .from('shopping_items')
+    .select('price, quantity')
+    .eq('store_id', currentStore.id);
+
+  const total = (data || []).reduce((sum, item) => {
+    if (item.price && item.quantity) {
+      return sum + (item.price * item.quantity);
+    }
+    return sum;
+  }, 0);
+
+  const totalEl = document.getElementById('list-total-display');
+  if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
+}
+    
+       async function addItem() {
       const nameEl  = document.getElementById('input-item-name');
       const qtyEl   = document.getElementById('input-item-qty');
       const priceEl = document.getElementById('input-item-price');
