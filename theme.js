@@ -16,7 +16,10 @@
 const THEMES = [
   {
     id: 'sakura',
+    name: 'Sakura',
+    kana: 'さくら · Spring',
     particle: 'theme-sakura',
+    swatches: ['#fdf6ee', '#f9a8c9', '#c97a4a', '#3d2314'],
     colors: {
       '--color-cream':      '#fdf6ee',
       '--color-bg-page':    '#fdf6ee',
@@ -29,7 +32,10 @@ const THEMES = [
   },
   {
     id: 'summer',
+    name: 'Summer',
+    kana: '夏 · Natsu',
     particle: 'theme-summer',
+    swatches: ['#f0f9ff', '#22d3ee', '#fcd34d', '#164e63'],
     colors: {
       '--color-cream':      '#f0f9ff',
       '--color-bg-page':    '#f0f9ff',
@@ -42,7 +48,10 @@ const THEMES = [
   },
   {
     id: 'autumn',
+    name: 'Autumn',
+    kana: '秋 · Aki',
     particle: 'theme-autumn',
+    swatches: ['#fef3c7', '#f87171', '#fb923c', '#451a03'],
     colors: {
       '--color-cream':      '#fef3c7',
       '--color-bg-page':    '#fef3c7',
@@ -55,7 +64,10 @@ const THEMES = [
   },
   {
     id: 'winter',
+    name: 'Winter',
+    kana: '冬 · Fuyu',
     particle: 'theme-winter',
+    swatches: ['#f1f5f9', '#93c5fd', '#cbd5e1', '#1e293b'],
     colors: {
       '--color-cream':      '#f1f5f9',
       '--color-bg-page':    '#f1f5f9',
@@ -68,7 +80,10 @@ const THEMES = [
   },
   {
     id: 'francais',
+    name: 'Français',
+    kana: 'フランス · France',
     particle: 'theme-francais',
+    swatches: ['#fefce8', '#1e3a5f', '#d4af37', '#1e3a5f'],
     colors: {
       '--color-cream':      '#fefce8',
       '--color-bg-page':    '#fefce8',
@@ -81,7 +96,10 @@ const THEMES = [
   },
   {
     id: 'italia',
+    name: 'Italia',
+    kana: 'イタリア · Italy',
     particle: 'theme-italia',
+    swatches: ['#fef9f0', '#c0392b', '#7daa61', '#5d3a1a'],
     colors: {
       '--color-cream':      '#fef9f0',
       '--color-bg-page':    '#fef9f0',
