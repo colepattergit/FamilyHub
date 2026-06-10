@@ -1478,7 +1478,7 @@
     let currentStore  = null;     /* the store currently open in items view */
     let items         = [];       /* items for the current store */
     let isSecretOn    = false;    /* new store popup secret toggle state */
-    let isNecessity   = false;    /* add item bar necessity toggle state */
+    let isNecessity   = false;    /* necessity toggle state */
     let currentFilter = 'all';    /* 'all' or 'necessity' */
 
     /* ======================================================
@@ -1866,9 +1866,9 @@
       priceEl.value = '';
 
       /* Reset necessity toggle */
-      isNecessity = false;
-      document.getElementById('necessity-toggle').classList.remove('on');
-
+isNecessity = false;
+document.getElementById('add-necessity-toggle').classList.remove('on');
+      
       /* Refocus name field so user can immediately type next item */
       nameEl.focus();
 
@@ -1980,12 +1980,6 @@
       document.getElementById('secret-toggle').setAttribute('aria-checked', isSecretOn);
     }
 
-    /* Necessity toggle in add item bar */
-    function toggleNecessity() {
-      isNecessity = !isNecessity;
-      document.getElementById('necessity-toggle').classList.toggle('on', isNecessity);
-    }
-
     /* ======================================================
        CONFIRM DIALOG — LIST COMPLETE
        ====================================================== */
@@ -2077,7 +2071,6 @@ async function deleteCurrentStore() {
     window.openStore          = openStore;
     window.closeStore         = closeStore;
     window.toggleSecret       = toggleSecret;
-    window.toggleNecessity    = toggleNecessity;
     window.addItem            = addItem;
     window.deleteItem         = deleteItem;
     window.toggleInCart       = toggleInCart;
@@ -2087,7 +2080,10 @@ async function deleteCurrentStore() {
     window.closeConfirm       = closeConfirm;
     window.deleteCurrentStore = deleteCurrentStore;
     window.promptDeleteStore  = promptDeleteStore;
-    
+    window.toggleAddPanel     = toggleAddPanel;
+    window.closeAddPanel      = closeAddPanel;
+    window.toggleAddNecessity = toggleAddNecessity;
+
     /* ── START THE PAGE ──────────────────────────────────── */
     init();
 
