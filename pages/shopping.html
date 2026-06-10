@@ -1267,12 +1267,15 @@
 
     <div class="panel-drag-handle" id="panel-drag-handle"></div>
 
-    <div class="add-panel-header">
-      <h3 class="add-panel-title">Add Item</h3>
-      <div class="add-panel-total">
-        Total: <strong id="list-total-display">$0.00</strong>
-      </div>
+<div class="add-panel-header">
+  <h3 class="add-panel-title">Add Item</h3>
+  <div style="display:flex; align-items:center; gap:12px;">
+    <div class="add-panel-total">
+      Total: <strong id="list-total-display">$0.00</strong>
     </div>
+    <button onclick="closeAddPanel()" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(61,35,20,0.08);font-size:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;">✕</button>
+  </div>
+</div>
 
     <div class="add-panel-body">
 
