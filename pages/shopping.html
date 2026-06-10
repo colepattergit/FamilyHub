@@ -746,130 +746,301 @@
        Contains all item fields in a compact horizontal layout.
        Sits above the bottom navigation bar.
        ====================================================== */
-    .add-item-bar {
-      background: white;
-      border-top: 1px solid rgba(249, 168, 201, 0.2);
-      padding: 12px 16px;
-      flex-shrink: 0;
-    }
-
-    /* Row 1: Item name input (full width) */
-    .add-item-name-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
-    /* Row 2: Quantity, price, necessity, add button */
-    .add-item-details-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    /* Shared style for all add-bar inputs */
-    .add-input {
-      padding: 10px 12px;
-      border: 1.5px solid rgba(61, 35, 20, 0.12);
-      border-radius: 10px;
-      font-family: 'Noto Sans JP', sans-serif;
-      font-size: 16px;
-      /* 16px prevents iOS auto-zoom */
-      color: var(--color-bark-900);
-      background: var(--color-cream);
-      -webkit-appearance: none;
-      appearance: none;
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
-
-    .add-input:focus {
-      border-color: var(--color-sakura-400);
-    }
-
-    /* Name input takes all available width */
-    .add-input-name {
-      flex: 1;
-    }
-
-    /* Quantity — narrow fixed width */
-    .add-input-qty {
-      width: 56px;
-      text-align: center;
-    }
-
-    /* Price — medium fixed width */
-    .add-input-price {
-      width: 80px;
-    }
-
-    /* Necessity toggle button — star icon */
-    .necessity-toggle-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      border: 1.5px solid rgba(61, 35, 20, 0.12);
-      background: var(--color-cream);
-      font-size: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      transition: all 0.15s ease;
-      flex-shrink: 0;
-    }
-
-    /* When necessity is ON — highlights in yuzu orange */
-    .necessity-toggle-btn.on {
-      background: rgba(201, 122, 74, 0.15);
-      border-color: var(--color-yuzu-700);
-    }
-
-    /* Add button — sakura pink pill */
-    .add-item-btn {
-      padding: 10px 18px;
-      border: none;
-      border-radius: 10px;
-      background: var(--color-sakura-400);
-      color: white;
-      font-family: 'Noto Sans JP', sans-serif;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      transition: transform 0.1s ease, background 0.15s ease;
-      flex-shrink: 0;
-      white-space: nowrap;
-    }
-
-    .add-item-btn:active {
-      transform: scale(0.95);
-      background: var(--color-yuzu-700);
-    }
-
-    /* ── INPUT HINT LABELS ────────────────────────────────────
-       Tiny labels above the detail row inputs.
-    ────────────────────────────────────────────────────────── */
-    .add-item-hints {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 4px;
-      padding: 0 2px;
-    }
-
-    .add-hint {
-      font-family: 'Noto Sans JP', sans-serif;
-      font-size: 10px;
-      color: var(--color-text-label, #8a7060);
-      letter-spacing: 0.5px;
-    }
-
-    .add-hint-name { flex: 1; }
-    .add-hint-qty  { width: 56px; text-align: center; }
-    .add-hint-price { width: 80px; }
-    .add-hint-star  { width: 40px; text-align: center; }
-    .add-hint-add   { width: 60px; text-align: center; }
+    /* ============================================================
+   SHOPPING INPUT REDESIGN
+   ============================================================
+   Changes to make in shopping.html:
+ 
+   1. Remove the entire .add-item-bar HTML block
+   2. Remove the .add-item-hints HTML block
+   3. Add the floating + button and new input panel below
+   4. Replace the CSS for add-item-bar with new styles
+   5. Replace the addItem() JS function with new version
+   6. Add touch/swipe dismiss to the panel
+   ============================================================ */
+ 
+ 
+/* ======================================================
+   STEP 1 — NEW CSS
+   ======================================================
+   Find the existing add-item-bar CSS block in shopping.html
+   and replace ALL of it (from .add-item-bar down to
+   .add-hint-add) with this new CSS.
+   ====================================================== */
+ 
+/*
+ 
+.add-item-bar — REMOVE ENTIRELY, replaced by below
+ 
+*/
+ 
+/* ── FLOATING ADD BUTTON ─────────────────────────────────────
+   The "+" button fixed to bottom right of items view.
+   Sits above the bottom nav bar with enough clearance.
+────────────────────────────────────────────────────────────── */
+.float-add-btn {
+  position: absolute;
+  /* absolute within the items-view container */
+  bottom: 16px;
+  right: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-sakura-400);
+  color: white;
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease, background 0.15s ease;
+  box-shadow:
+    0 4px 16px rgba(249, 168, 201, 0.4),
+    0 2px 6px rgba(61, 35, 20, 0.1);
+  z-index: 10;
+  /* sits above the item list */
+  flex-shrink: 0;
+}
+ 
+.float-add-btn:active {
+  transform: scale(0.92);
+  background: var(--color-yuzu-700);
+}
+ 
+/* Rotate + to × when panel is open */
+.float-add-btn.open {
+  transform: rotate(45deg);
+  background: var(--color-yuzu-700);
+}
+ 
+/* ── ADD ITEM PANEL ──────────────────────────────────────────
+   Slides up from the bottom when + is tapped.
+   Swipe down to dismiss.
+   Contains all item input fields in a clean stacked layout.
+────────────────────────────────────────────────────────────── */
+.add-item-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 24px 24px 0 0;
+  z-index: 200;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+  box-shadow: 0 -4px 32px rgba(61, 35, 20, 0.12);
+  /* Limit height so panel doesn't cover whole screen */
+  max-height: 85vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+ 
+.add-item-panel.open {
+  transform: translateY(0);
+}
+ 
+/* Drag handle at top — visual affordance for swipe dismiss */
+.panel-drag-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(61, 35, 20, 0.15);
+  border-radius: 2px;
+  margin: 12px auto 0;
+  cursor: grab;
+}
+ 
+/* Panel header — title and list total */
+.add-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid rgba(61, 35, 20, 0.06);
+}
+ 
+.add-panel-title {
+  font-family: 'Kaisei Decol', serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-bark-900);
+  margin: 0;
+}
+ 
+/* List total display in panel header */
+.add-panel-total {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13px;
+  color: var(--color-text-label, #8a7060);
+}
+ 
+.add-panel-total strong {
+  font-family: 'Kaisei Decol', serif;
+  font-size: 16px;
+  color: var(--color-bark-900);
+}
+ 
+/* Panel form body */
+.add-panel-body {
+  padding: 16px 20px 8px;
+}
+ 
+/* ── FORM FIELD GROUPS ───────────────────────────────────────
+   Each field has a label above and input below.
+   Clean stacked layout — no cramped horizontal rows.
+────────────────────────────────────────────────────────────── */
+.add-field-group {
+  margin-bottom: 14px;
+}
+ 
+.add-field-label {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-label, #8a7060);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 5px;
+}
+ 
+/* Shared input style */
+.add-field-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid rgba(61, 35, 20, 0.12);
+  border-radius: 10px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 16px;
+  /* 16px prevents iOS zoom on focus */
+  color: var(--color-bark-900);
+  background: var(--color-cream);
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+ 
+.add-field-input:focus {
+  border-color: var(--color-sakura-400);
+}
+ 
+/* ── QTY + UOM + PRICE ROW ───────────────────────────────────
+   Three inputs side by side with their own labels above.
+────────────────────────────────────────────────────────────── */
+.add-fields-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 96px;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+ 
+/* UOM select dropdown */
+.add-field-select {
+  width: 100%;
+  padding: 11px 10px;
+  border: 1.5px solid rgba(61, 35, 20, 0.12);
+  border-radius: 10px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 15px;
+  color: var(--color-bark-900);
+  background: var(--color-cream);
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  /* Custom arrow indicator */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a7060' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+ 
+/* ── NECESSITY TOGGLE ROW ────────────────────────────────────
+   Full width toggle row for necessity marking.
+────────────────────────────────────────────────────────────── */
+.add-necessity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0 14px;
+  border-top: 1px solid rgba(61, 35, 20, 0.06);
+  margin-top: 4px;
+}
+ 
+.add-necessity-label {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 14px;
+  color: var(--color-bark-900);
+}
+ 
+.add-necessity-sub {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 11px;
+  color: var(--color-text-label, #8a7060);
+  display: block;
+  margin-top: 1px;
+}
+ 
+/* iOS toggle switch — reused from existing style */
+.add-necessity-toggle {
+  width: 44px;
+  height: 26px;
+  background: #ddd;
+  border-radius: 13px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+ 
+.add-necessity-toggle::after {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+ 
+.add-necessity-toggle.on {
+  background: var(--color-yuzu-700);
+}
+ 
+.add-necessity-toggle.on::after {
+  transform: translateX(18px);
+}
+ 
+/* ── ADD BUTTON ──────────────────────────────────────────────
+   Full width button at the bottom of the panel.
+────────────────────────────────────────────────────────────── */
+.add-panel-submit {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: var(--color-sakura-400);
+  color: white;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s ease, background 0.15s ease;
+  margin-bottom: 8px;
+}
+ 
+.add-panel-submit:active {
+  transform: scale(0.98);
+  background: var(--color-yuzu-700);
+}
 
     /* ======================================================
        CONFIRM DIALOG — DELETE LIST PROMPT
@@ -1075,78 +1246,116 @@
           Row 1: Item name (full width)
           Row 2: Qty | Price | ⭐ necessity | Add button
         ─────────────────────────────────────────────────── -->
-        <div class="add-item-bar">
-
-          <!-- Tiny hint labels above inputs -->
-          <div class="add-item-hints">
-            <span class="add-hint add-hint-name">Item name</span>
-            <span class="add-hint add-hint-qty">Qty</span>
-            <span class="add-hint add-hint-price">Price $</span>
-            <span class="add-hint add-hint-star">Must</span>
-            <span class="add-hint add-hint-add"></span>
-          </div>
-
-          <!-- Row 1: Name input -->
-          <div class="add-item-name-row">
-            <input
-              class="add-input add-input-name"
-              id="input-item-name"
-              type="text"
-              placeholder="e.g. Milk, Bread..."
-              autocomplete="off"
-              autocorrect="off"
-            />
-          </div>
-
-          <!-- Row 2: Qty + Price + Necessity + Add -->
-          <div class="add-item-details-row">
-
-            <!-- Quantity — number input, default 1 -->
-            <input
-              class="add-input add-input-qty"
-              id="input-item-qty"
-              type="number"
-              min="1"
-              value="1"
-              placeholder="1"
-            />
-
-            <!-- Price per unit — optional -->
-            <input
-              class="add-input add-input-price"
-              id="input-item-price"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-            />
-
-            <!-- Necessity toggle — star button
-                 Tapping toggles the isNecessity state
-                 and highlights the button -->
-            <button
-              class="necessity-toggle-btn"
-              id="necessity-toggle"
-              onclick="toggleNecessity()"
-              title="Mark as necessity"
-            >
-              ⭐
-            </button>
-
-            <!-- Add item button -->
-            <button class="add-item-btn" onclick="addItem()">
-              Add
-            </button>
-
-          </div>
-        </div>
-        <!-- end add-item-bar -->
+<button
+          class="float-add-btn"
+          id="float-add-btn"
+          onclick="toggleAddPanel()"
+          aria-label="Add item"
+        >+</button>
 
       </div>
       <!-- end items-view -->
 
+      <!-- ADD PANEL OVERLAY -->
+      <div class="popup-overlay" id="add-panel-overlay" onclick="closeAddPanel()" style="display:none; opacity:0;"></div>
+
     </div>
     <!-- end views-container -->
+
+  <!-- ── ADD ITEM PANEL ──────────────────────────────── -->
+  <div class="add-item-panel" id="add-item-panel">
+
+    <div class="panel-drag-handle" id="panel-drag-handle"></div>
+
+    <div class="add-panel-header">
+      <h3 class="add-panel-title">Add Item</h3>
+      <div class="add-panel-total">
+        Total: <strong id="list-total-display">$0.00</strong>
+      </div>
+    </div>
+
+    <div class="add-panel-body">
+
+      <div class="add-field-group">
+        <label class="add-field-label" for="input-item-name">Item Name</label>
+        <input
+          class="add-field-input"
+          id="input-item-name"
+          type="text"
+          placeholder="e.g. Whole milk, Bread..."
+          autocomplete="off"
+          autocorrect="off"
+        />
+      </div>
+
+      <div class="add-fields-row">
+        <div class="add-field-group" style="margin:0">
+          <label class="add-field-label" for="input-item-qty">Qty</label>
+          <input
+            class="add-field-input"
+            id="input-item-qty"
+            type="number"
+            min="1"
+            value="1"
+            style="text-align:center; padding-left:8px; padding-right:8px;"
+          />
+        </div>
+        <div class="add-field-group" style="margin:0">
+          <label class="add-field-label" for="input-item-uom">Unit</label>
+          <select class="add-field-select" id="input-item-uom">
+            <option value="ea.">ea.</option>
+            <option value="lbs.">lbs.</option>
+            <option value="oz.">oz.</option>
+            <option value="g.">g.</option>
+            <option value="kg.">kg.</option>
+            <option value="bags.">bags.</option>
+            <option value="box.">box.</option>
+            <option value="pkg.">pkg.</option>
+            <option value="doz.">doz.</option>
+            <option value="ft.">ft.</option>
+            <option value="in.">in.</option>
+            <option value="gal.">gal.</option>
+            <option value="L.">L.</option>
+            <option value="ml.">ml.</option>
+            <option value="fl.oz.">fl.oz.</option>
+            <option value="pair.">pair.</option>
+            <option value="roll.">roll.</option>
+            <option value="can.">can.</option>
+            <option value="jar.">jar.</option>
+            <option value="bunch.">bunch.</option>
+          </select>
+        </div>
+        <div class="add-field-group" style="margin:0">
+          <label class="add-field-label" for="input-item-price">Price $</label>
+          <input
+            class="add-field-input"
+            id="input-item-price"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          />
+        </div>
+      </div>
+
+      <div class="add-necessity-row">
+        <div>
+          <span class="add-necessity-label">⭐ Necessity</span>
+          <span class="add-necessity-sub">Must-have item</span>
+        </div>
+        <div
+          class="add-necessity-toggle"
+          id="add-necessity-toggle"
+          onclick="toggleAddNecessity()"
+        ></div>
+      </div>
+
+      <button class="add-panel-submit" onclick="addItem()">
+        Add to List
+      </button>
+
+    </div>
+  </div>
 
     <!-- ─────────────────────────────────────────────────
       BOTTOM NAVIGATION BAR

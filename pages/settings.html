@@ -890,54 +890,72 @@ textarea.form-input {
     <!-- ─────────────────────────────────────────────────
       SCROLLABLE SETTINGS CONTENT
     ───────────────────────────────────────────────────── -->
+    <!-- ============================================================
+     SETTINGS PAGE REORGANIZATION
+     ============================================================
+     Replace the entire settings-scroll div contents with this.
+     The JavaScript and CSS stay the same — only the HTML
+     structure changes to reorganize into cleaner sections.
+     ============================================================ -->
+
     <div class="settings-scroll">
 
       <!-- ══════════════════════════════════════════════
-        SECTION 1 — PROFILE
+        PROFILE SECTION
       ══════════════════════════════════════════════════ -->
       <div class="settings-section">
         <p class="section-label">Profile</p>
         <div class="settings-card">
-
-          <!-- Avatar and name row -->
           <div class="profile-avatar-row">
             <div class="profile-avatar" id="profile-avatar">C</div>
             <div>
               <p class="profile-name" id="profile-name">Loading...</p>
-              <p class="profile-role">Family Member</p>
+              <p class="profile-role">Family Member · 家族</p>
             </div>
           </div>
+        </div>
+      </div>
 
-          <!-- Color palette -->
+      <!-- ══════════════════════════════════════════════
+        APPEARANCE SECTION
+        Combines theme + accent color into one card.
+      ══════════════════════════════════════════════════ -->
+      <div class="settings-section">
+        <p class="section-label">Appearance · 外観</p>
+        <div class="settings-card">
+
+          <!-- Accent Color subsection -->
           <div class="color-palette-section">
-            <span class="color-palette-label">Accent Color</span>
-            <div class="color-palette" id="color-palette">
-              <!-- Swatches injected by JavaScript -->
-            </div>
+            <span class="color-palette-label">Accent Color · アクセントカラー</span>
+            <div class="color-palette" id="color-palette"></div>
+          </div>
+
+          <!-- Divider between color and themes -->
+          <div style="height:1px; background:rgba(61,35,20,0.06); margin:0 16px;"></div>
+
+          <!-- Theme subsection label -->
+          <div style="padding:14px 16px 10px;">
+            <span style="font-family:'Noto Sans JP',sans-serif; font-size:11px; font-weight:500; color:var(--color-text-label,#8a7060); letter-spacing:2px; text-transform:uppercase;">
+              Theme · テーマ
+            </span>
+          </div>
+
+          <!-- Theme grid inside the card -->
+          <div style="padding:0 12px 16px;">
+            <div class="themes-grid" id="themes-grid"></div>
           </div>
 
         </div>
       </div>
 
       <!-- ══════════════════════════════════════════════
-        SECTION 2 — THEME
+        SECURITY SECTION
       ══════════════════════════════════════════════════ -->
       <div class="settings-section">
-        <p class="section-label">Theme</p>
-        <div class="themes-grid" id="themes-grid">
-          <!-- Theme cards injected by JavaScript -->
-        </div>
-      </div>
-
-      <!-- ══════════════════════════════════════════════
-        SECTION 3 — CHANGE PIN
-      ══════════════════════════════════════════════════ -->
-      <div class="settings-section">
-        <p class="section-label">Security</p>
+        <p class="section-label">Security · セキュリティ</p>
         <div class="settings-card">
           <div class="pin-change-section">
 
-            <!-- Three PIN rows — current, new, confirm -->
             <div class="pin-row active" id="pin-row-current">
               <span class="pin-row-label">Current</span>
               <div class="pin-row-dots" id="dots-current">
@@ -971,10 +989,8 @@ textarea.form-input {
               </div>
             </div>
 
-            <!-- Status message -->
             <p class="pin-status" id="pin-status"></p>
 
-            <!-- Compact number pad -->
             <div class="pin-pad-sm">
               <button class="pin-key-sm" onclick="pinDigit('1')">1</button>
               <button class="pin-key-sm" onclick="pinDigit('2')">2</button>
@@ -990,7 +1006,6 @@ textarea.form-input {
               <button class="pin-key-sm" onclick="pinDelete()">⌫</button>
             </div>
 
-            <!-- Save button — visible when all 3 PINs entered -->
             <button class="save-pin-btn" id="save-pin-btn" onclick="saveNewPIN()">
               Save New PIN
             </button>
@@ -1000,10 +1015,84 @@ textarea.form-input {
       </div>
 
       <!-- ══════════════════════════════════════════════
-        SECTION 4 — APP INFO
+        CALENDAR SECTION
       ══════════════════════════════════════════════════ -->
       <div class="settings-section">
-        <p class="section-label">About</p>
+        <p class="section-label">Calendar · カレンダー</p>
+        <div class="settings-card">
+          <div class="settings-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+            <div style="width:100%; display:flex; align-items:center; justify-content:space-between;">
+              <div>
+                <p class="settings-row-label">Import Calendar</p>
+                <p style="font-family:'Noto Sans JP',sans-serif; font-size:11px; color:var(--color-text-label,#8a7060); margin:2px 0 0;">
+                  Import from Apple Calendar or OP2 (.ics)
+                </p>
+              </div>
+              <input type="file" id="ics-file-input" accept=".ics" style="display:none" onchange="handleICSImport(event)" />
+              <button class="import-btn" onclick="document.getElementById('ics-file-input').click()">Import</button>
+            </div>
+            <div class="import-status" id="import-status" style="display:none; width:100%;">
+              <div class="import-progress-bar">
+                <div class="import-progress-fill" id="import-progress-fill"></div>
+              </div>
+              <p class="import-status-text" id="import-status-text">Preparing...</p>
+            </div>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-label">Last Import</span>
+            <span class="settings-row-value" id="last-import-date">Never</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-row-label">Events Imported</span>
+            <span class="settings-row-value" id="import-count">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════
+        DEV NOTES SECTION — cleaned up
+      ══════════════════════════════════════════════════ -->
+      <div class="settings-section">
+        <p class="section-label">Dev Notes · 開発メモ</p>
+
+        <!-- Add note card -->
+        <div class="settings-card" style="margin-bottom:10px;">
+          <div style="padding:16px;">
+            <div class="add-field-group" style="margin-bottom:10px;">
+              <label class="add-field-label" for="note-title-input">Title</label>
+              <input
+                class="form-input"
+                id="note-title-input"
+                type="text"
+                placeholder="e.g. Add push notifications"
+                autocomplete="off"
+                style="font-size:16px;"
+              />
+            </div>
+            <div class="add-field-group" style="margin-bottom:12px;">
+              <label class="add-field-label" for="note-desc-input">Description</label>
+              <textarea
+                class="form-input"
+                id="note-desc-input"
+                placeholder="Describe the feature, fix, or idea..."
+                rows="3"
+                style="font-size:16px; resize:none; line-height:1.5;"
+              ></textarea>
+            </div>
+            <button class="create-btn" onclick="saveDevNote()">Save Note ✿</button>
+          </div>
+        </div>
+
+        <!-- Notes list -->
+        <div id="devnotes-list"></div>
+
+      </div>
+
+      <!-- ══════════════════════════════════════════════
+        ABOUT SECTION
+      ══════════════════════════════════════════════════ -->
+      <div class="settings-section">
+        <p class="section-label">About · について</p>
         <div class="settings-card">
           <div class="app-info-center">
             <p class="app-info-title">家族ハブ</p>
@@ -1014,7 +1103,6 @@ textarea.form-input {
               Designed for two iPhones and one family
             </p>
           </div>
-          <!-- App version row -->
           <div class="settings-row">
             <span class="settings-row-label">Version</span>
             <span class="settings-row-value">1.0.0</span>
@@ -1029,109 +1117,6 @@ textarea.form-input {
           </div>
         </div>
       </div>
-
-<div class="settings-section">
-  <p class="section-label">Calendar</p>
-  <div class="settings-card">
- 
-    <!-- Import row -->
-    <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-      <div style="width:100%; display:flex; align-items:center; justify-content:space-between;">
-        <div>
-          <p class="settings-row-label">Import Calendar</p>
-          <p style="font-family:'Noto Sans JP',sans-serif; font-size:11px; color:var(--color-text-label,#8a7060); margin:2px 0 0;">
-            Import from Apple Calendar or OP2 (.ics file)
-          </p>
-        </div>
-        <!-- Hidden file input — triggered by the button below -->
-        <input
-          type="file"
-          id="ics-file-input"
-          accept=".ics"
-          style="display:none"
-          onchange="handleICSImport(event)"
-        />
-        <button class="import-btn" onclick="document.getElementById('ics-file-input').click()">
-          Import
-        </button>
-      </div>
- 
-      <!-- Progress/status area — hidden until import starts -->
-      <div class="import-status" id="import-status" style="display:none; width:100%;">
-        <div class="import-progress-bar">
-          <div class="import-progress-fill" id="import-progress-fill"></div>
-        </div>
-        <p class="import-status-text" id="import-status-text">Preparing...</p>
-      </div>
- 
-    </div>
- 
-    <!-- Import history row -->
-    <div class="settings-row">
-      <span class="settings-row-label">Last Import</span>
-      <span class="settings-row-value" id="last-import-date">Never</span>
-    </div>
- 
-    <!-- Events imported count -->
-    <div class="settings-row">
-      <span class="settings-row-label">Events Imported</span>
-      <span class="settings-row-value" id="import-count">0</span>
-    </div>
- 
-  </div>
-</div>
- 
- 
-<!-- ══════════════════════════════════════════════════════════
-     SECTION 6 — DEVNOTES
-     ══════════════════════════════════════════════════════════ -->
-<div class="settings-section">
-  <p class="section-label">Dev Notes 開発メモ</p>
-  <!-- 開発メモ = kaihatsu memo = development notes -->
- 
-  <!-- Add new note card -->
-  <div class="settings-card" style="margin-bottom: 10px;">
-    <div style="padding: 16px;">
- 
-      <!-- Note title input -->
-      <div class="form-group" style="margin-bottom:10px;">
-        <label class="form-label" for="note-title-input">Title</label>
-        <input
-          class="form-input"
-          id="note-title-input"
-          type="text"
-          placeholder="e.g. Add push notifications"
-          autocomplete="off"
-          style="font-size:16px;"
-        />
-      </div>
- 
-      <!-- Note description input -->
-      <div class="form-group" style="margin-bottom:12px;">
-        <label class="form-label" for="note-desc-input">Description</label>
-        <textarea
-          class="form-input"
-          id="note-desc-input"
-          placeholder="Describe the feature or fix..."
-          rows="3"
-          style="font-size:16px; resize:none; line-height:1.5;"
-        ></textarea>
-      </div>
- 
-      <!-- Save note button -->
-      <button class="create-btn" onclick="saveDevNote()">
-        Save Note
-      </button>
- 
-    </div>
-  </div>
- 
-  <!-- Notes list — rendered by JS -->
-  <div id="devnotes-list">
-    <!-- Note cards injected here -->
-  </div>
- 
-</div>
 
     </div>
     <!-- end settings-scroll -->
@@ -1164,6 +1149,7 @@ textarea.form-input {
   </div>
 
   <script type="module">
+    import { THEMES, DIVIDERS } from '../theme.js';
     import { supabase } from '../supabase.js';
     import { currentUser } from '../auth.js';
 
